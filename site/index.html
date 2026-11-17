@@ -1103,6 +1103,7 @@ function renderToday(){
   if(day){
     out.push(forecastPanel(day,'m-only'));
     out.push(extraPanel(day,'m-only'));
+    out.push(stampPanel(day,'m-only'));
     const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open')));
     day.items.slice(0,6).forEach(it=>card.append(stopRow(day,it)));
     if(day.items.length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(day.items.length-6)+' more on the Plan tab'));
@@ -1156,6 +1157,7 @@ function renderPlan2(){
     if(BACKUP[d.iso])out.push(h('div',{class:'heads'},h('b',null,'Rain or backup plan '),BACKUP[d.iso]));
   }else if(tab==='see'){
     out.push(extraPanel(d,'m-only'));
+    out.push(stampPanel(d,'m-only'));
     if(!inf)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'Nothing added for this day.')));
     else{
       out.push(h('div',{class:'card'},h('p',{style:'margin:0'},inf.about)));
@@ -1286,6 +1288,38 @@ function renderSub(id){
   return [h('div',{class:'back'},h('button',{onclick:()=>go('more'),'aria-label':'Back to More'},icon('back',18),'More'),h('h2',null,s[0])),...body];
 }
 
+
+// ---------- stamps: post offices and souvenir ink stamps ----------
+// General guidance. Post office hours change and many close at weekends, so check before you go.
+const STAMPS={
+ 'Taipei':[['Taipei Main Post Office','Across from Taipei Main Station on Zhongxiao West Road. Buy stamps and post cards here.','Usually weekdays, check hours'],['Postal Museum','Stamp and postal history museum near the Botanical Garden','Check opening days'],['Station souvenir stamps','Free ink stamps at Taipei Main and many other stations, ask at the information counter','Free']],
+ 'Taitung':[['Taitung Railway Station stamp','Free souvenir ink stamp, ask at the station desk','Free'],['Chunghwa Post branches','Look for the green 中華郵政 sign in town for stamps and post cards','Usually weekdays']],
+ 'Green Island':[['Green Island post office','Small post office in the main village, a nice place to post a card from the island','Usually weekdays, check hours'],['Visitor information points','Ask for the free souvenir ink stamp at information desks','Free']],
+ 'Macau':[['Macau Central Post Office','Historic building right on Senado Square. Stamps, post cards and a collectors\' counter.','Usually weekdays, check hours'],['Post cards at Senado Square shops','Souvenir shops around the square sell post cards, then post them at the post office','Open daily']],
+ 'Hong Kong':[['Hong Kong General Post Office','Big post office at 2 Connaught Place in Central, near Central Pier and IFC. Stamps, post cards and a collectors\' counter.','Check hours, closed on some days'],['Hongkong Post branches','Branches near most MTR stations and malls. Look for the green Hongkong Post sign.','Weekdays, some Saturdays']]
+};
+const STAMP_DAY={
+ '2026-12-16':'Taipei Main Post Office is a short walk from where you arrive.',
+ '2026-12-27':'The Macau Central Post Office is on Senado Square, which is on your plan today.',
+ '2026-12-29':'The Hong Kong General Post Office is near Central Pier, on your way to the Star Ferry.'
+};
+const STAMP_PHRASE={
+ 'Taiwan':['我想買郵票，寄明信片到印度','wǒ xiǎng mǎi yóupiào, jì míngxìnpiàn dào Yìndù'],
+ 'Macau':['Quero selos para um postal para a Índia','Portuguese: I want stamps for a post card to India'],
+ 'Hong Kong':['我想買郵票，寄明信片去印度','ngo5 soeng2 maai5 jau4 piu3, gei3 ming4 seon3 pin2 heoi3 jan3 dou6']
+};
+function stampPanel(day,extra){
+  const key=wxKey(wxIso(day),day.city),l=STAMPS[key];
+  if(!l)return h('div',{hidden:true});
+  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Stamps nearby'),
+    h('p',{class:'muted',style:'margin:2px 0 4px'},(STAMP_DAY[day.iso]||'Post offices and souvenir stamps around '+key+'.')));
+  l.forEach(([n,why,how])=>card.append(h('div',{class:'xp'},
+    h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
+    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map')))));
+  const ph=STAMP_PHRASE[day.city];
+  if(ph)card.append(h('div',{class:'heads',style:'margin:10px 0 0'},h('b',null,'Say it '),h('span',{style:'font-family:var(--han)'},ph[0]),h('div',{class:'muted'},ph[1])));
+  return card;
+}
 // ---------- weather panel and nearby ideas ----------
 const addDays=(iso,n)=>new Date(Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10)+n)).toISOString().slice(0,10);
 const wd=iso=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
@@ -1354,7 +1388,7 @@ function extraPanel(day,extra){
 function renderAside(){
   if(!asideEl)return;
   const d=(S.tab==='plan'&&S.selDay&&S.days.find(x=>x.id===S.selDay))||curDay()||S.days[0];
-  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},'For '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d));
+  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},'For '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),stampPanel(d));
 }
 // ---- render ----
 function render(){
