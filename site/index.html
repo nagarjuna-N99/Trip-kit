@@ -1032,6 +1032,13 @@ function renderNav(){
   tabsEl.replaceChildren(h('div',{class:'brand','aria-hidden':'true'},'TK'),...NAV.map(([id,label,ic])=>{const on=S.tab===id;
     return h('button',{class:'nv'+(on?' on':''),'aria-current':on?'page':null,onclick:()=>go(id)},icon(ic,22),h('span',null,label))}));
 }
+const TRIP_DAYS=21;
+function dayInfo(d){
+  const a=dayDiff(TRIP_START,d.iso)+1,b=d.iso2?dayDiff(TRIP_START,d.iso2)+1:a;
+  const f=(iso,o)=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',o);
+  const date=d.iso2?f(d.iso,{weekday:'short',day:'numeric'})+' – '+f(d.iso2,{weekday:'short',day:'numeric',month:'long'}):f(d.iso,{weekday:'long',day:'numeric',month:'long'});
+  return {n:(b>a?'Days '+a+'–'+b:'Day '+a)+' of '+TRIP_DAYS,date};
+}
 const dayNum=s=>(String(s).match(/\d+/)||[''])[0];
 const monShort=iso=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{month:'short'});
 const curDay=()=>{const t=today();return S.days.find(d=>t>=d.iso&&t<=(d.iso2||d.iso))||null};
@@ -1083,7 +1090,7 @@ function renderToday(){
   const t=today(),toGo=dayDiff(t,TRIP_START),live=toGo<=0;
   const day=curDay()||(toGo>0?S.days[0]:null);
   const out=[];
-  out.push(h('div',{class:'hd'},h('div',{class:'kick'},live&&day?day.date+' · '+day.city:'Your trip'),
+  out.push(h('div',{class:'hd'},h('div',{class:'kick'},live&&day?dayInfo(day).n+' · '+day.date+' · '+day.city:'Your trip'),
     h('h1',null,live&&day?day.title:toGo>0?'Almost time':'Welcome home')));
   const sc=setupCard();if(sc)out.push(sc);
   if(toGo>0&&day){
@@ -1121,14 +1128,15 @@ function renderPlan2(){
   const strip=h('div',{class:'strip',role:'tablist','aria-label':'Days'},S.days.map(x=>{
     const on=x.id===S.selDay,isNow=t>=x.iso&&t<=(x.iso2||x.iso);
     const col=x.city==='Taiwan'?'var(--tw)':x.city==='Macau'?'var(--mo)':'var(--hk)';
-    return h('button',{class:'dchip'+(on?' on':'')+(isNow?' now':''),id:'chip'+x.id,role:'tab','aria-selected':on?'true':'false','aria-label':x.date+', '+x.title,onclick:()=>{S.selDay=x.id;save();render()}},
+    return h('button',{class:'dchip'+(on?' on':'')+(isNow?' now':''),id:'chip'+x.id,role:'tab','aria-selected':on?'true':'false','aria-label':dayInfo(x).n+', '+x.date+', '+x.title,title:dayInfo(x).n,onclick:()=>{S.selDay=x.id;save();render()}},
       h('small',null,monShort(x.iso)),h('b',null,dayNum(x.date)),h('i',{style:'background:'+col}));
   }));
   const a=wxAdvice(wxIso(d),d.city);
   const head=h('div',{class:'dhead g-'+cls(d.city)},
-    h('div',{class:'row sp'},h('span',{class:'pill'},d.city),h('span',{class:'pill ghost'},d.date)),
+    h('div',{class:'row sp'},h('span',{class:'pill'},d.city),h('span',{class:'pill ghost'},dayInfo(d).n)),
     h('h2',{class:'dt'},d.title),
-    a?h('div',{class:'mini'},Math.round(a.w.tmin)+'–'+Math.round(a.w.tmax)+'°C · rain '+(a.w.pop==null?'?':a.w.pop+'%')):h('div',{class:'mini'},(WEATHER[d.city]||[[0,'']])[0][1].split('.')[0]));
+    h('div',{class:'mini'},dayInfo(d).date),
+    a?h('div',{class:'mini'},Math.round(a.w.tmin)+'–'+Math.round(a.w.tmax)+'°C · rain '+(a.w.pop==null?'?':a.w.pop+'%')):h('div',{class:'mini'},(((WEATHER[d.city]||[]).find(x=>x[0]===wxKey(wxIso(d),d.city)))||(WEATHER[d.city]||[[0,'']])[0])[1].split('.')[0]));
   const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('h1',null,'Plan')),strip,head];
   (d.bookings||[]).forEach(b=>out.push(h('div',{class:'booked'},h('b',null,/still to book|pay on arrival/.test(b)?'To book':'Booked'),b)));
   out.push(h('div',{class:'seg',role:'group','aria-label':'Day sections'},PT.map(([id,l])=>h('button',{'aria-pressed':(S.planTab||'stops')===id?'true':'false',onclick:()=>{S.planTab=id;save();render()}},l))));
@@ -1401,7 +1409,7 @@ function renderAside(){
   if(lay)lay.classList.toggle('noaside',!onPlan);
   if(!onPlan){asideEl.replaceChildren();return}
   const d=(S.selDay&&S.days.find(x=>x.id===S.selDay))||curDay()||S.days[0];
-  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},'For '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),foodPanel(d),stampPanel(d));
+  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},dayInfo(d).n+' · '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),foodPanel(d),stampPanel(d));
 }
 // ---- render ----
 function render(){
