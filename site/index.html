@@ -1289,35 +1289,36 @@ function renderSub(id){
 }
 
 
-// ---------- stamps: post offices and souvenir ink stamps ----------
-// General guidance. Post office hours change and many close at weekends, so check before you go.
+// ---------- free souvenir ink stamps ----------
+// Places where free commemorative ink stamps are often found. Availability varies, so ask at the counter.
 const STAMPS={
- 'Taipei':[['Taipei Main Post Office','Across from Taipei Main Station on Zhongxiao West Road. Buy stamps and post cards here.','Usually weekdays, check hours'],['Postal Museum','Stamp and postal history museum near the Botanical Garden','Check opening days'],['Station souvenir stamps','Free ink stamps at Taipei Main and many other stations, ask at the information counter','Free']],
- 'Taitung':[['Taitung Railway Station stamp','Free souvenir ink stamp, ask at the station desk','Free'],['Chunghwa Post branches','Look for the green 中華郵政 sign in town for stamps and post cards','Usually weekdays']],
- 'Green Island':[['Green Island post office','Small post office in the main village, a nice place to post a card from the island','Usually weekdays, check hours'],['Visitor information points','Ask for the free souvenir ink stamp at information desks','Free']],
- 'Macau':[['Macau Central Post Office','Historic building right on Senado Square. Stamps, post cards and a collectors\' counter.','Usually weekdays, check hours'],['Post cards at Senado Square shops','Souvenir shops around the square sell post cards, then post them at the post office','Open daily']],
- 'Hong Kong':[['Hong Kong General Post Office','Big post office at 2 Connaught Place in Central, near Central Pier and IFC. Stamps, post cards and a collectors\' counter.','Check hours, closed on some days'],['Hongkong Post branches','Branches near most MTR stations and malls. Look for the green Hongkong Post sign.','Weekdays, some Saturdays']]
+ 'Taipei':[['Taipei Main Station','Ask at the staffed information counter for the station commemorative stamp (紀念章).','Inside the station'],['Taiwan Tourist Information Centre, Taipei Main Station','Free maps and tips. Staff can point you to the nearest stamp spots.','Inside the station'],['Temples, for example Longshan Temple','Many Taiwanese temples keep a free ink stamp on a table near the entrance. Look for a small stamp pad.','At the entrance']],
+ 'Taitung':[['Taitung Railway Station','Ask at the station desk for the commemorative stamp.','Inside the station'],['Taitung Railway Art Village','Heritage sites like this often have a stamp at the visitor desk.','Old railway area']],
+ 'Green Island':[['Visitor information near the harbour','Ask at the tourist information desk for a free island souvenir stamp.','Near where the ferry lands'],['Your hostel desk','Island hostels often know where the stamp stands are and may have one.','Where you stay']],
+ 'Macau':[['Macau Government Tourism Office, Senado Square','Information counter in the historic centre. Ask whether they have souvenir stamps.','On Senado Square'],['Museum ticket desks','Places like the Macau Museum at Mount Fortress sometimes have a small stamp at the desk.','Ask at the desk']],
+ 'Hong Kong':[['Tourist information desks','Hong Kong Tourism Board desks, for example at the airport, can tell you where free souvenir stamps are.','Airport and main visitor spots'],['Museums and heritage sites','Places like Tai Kwun and the Hong Kong Museum of History sometimes have a stamp at the visitor desk.','Ask at the desk']]
 };
 const STAMP_DAY={
- '2026-12-16':'Taipei Main Post Office is a short walk from where you arrive.',
- '2026-12-27':'The Macau Central Post Office is on Senado Square, which is on your plan today.',
- '2026-12-29':'The Hong Kong General Post Office is near Central Pier, on your way to the Star Ferry.'
+ '2026-12-16':'Start at the information counter in Taipei Main Station.',
+ '2026-12-25':'The Yangmingshan National Park Visitor Center is a likely place for a free park stamp. Ask there.',
+ '2026-12-27':'The tourism office on Senado Square is on your plan today.'
 };
 const STAMP_PHRASE={
- 'Taiwan':['我想買郵票，寄明信片到印度','wǒ xiǎng mǎi yóupiào, jì míngxìnpiàn dào Yìndù'],
- 'Macau':['Quero selos para um postal para a Índia','Portuguese: I want stamps for a post card to India'],
- 'Hong Kong':['我想買郵票，寄明信片去印度','ngo5 soeng2 maai5 jau4 piu3, gei3 ming4 seon3 pin2 heoi3 jan3 dou6']
+ 'Taiwan':['請問有紀念章嗎？','qǐngwèn yǒu jìniàn zhāng ma?'],
+ 'Macau':['Tem um carimbo de recordação?','Portuguese: Do you have a souvenir stamp?'],
+ 'Hong Kong':['請問有冇紀念印章？','cing2 man6 jau5 mou5 gei3 nim6 jan3 zoeng1?']
 };
 function stampPanel(day,extra){
   const key=wxKey(wxIso(day),day.city),l=STAMPS[key];
   if(!l)return h('div',{hidden:true});
-  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Stamps nearby'),
-    h('p',{class:'muted',style:'margin:2px 0 4px'},(STAMP_DAY[day.iso]||'Post offices and souvenir stamps around '+key+'.')));
+  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Free ink stamps nearby'),
+    h('p',{class:'muted',style:'margin:2px 0 4px'},STAMP_DAY[day.iso]||'Where free souvenir stamps are often found around '+key+'. Not guaranteed, so ask at the counter.'));
   l.forEach(([n,why,how])=>card.append(h('div',{class:'xp'},
     h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
     h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map')))));
   const ph=STAMP_PHRASE[day.city];
-  if(ph)card.append(h('div',{class:'heads',style:'margin:10px 0 0'},h('b',null,'Say it '),h('span',{style:'font-family:var(--han)'},ph[0]),h('div',{class:'muted'},ph[1])));
+  if(ph)card.append(h('div',{class:'heads',style:'margin:10px 0 0'},h('b',null,'Ask '),h('span',{style:'font-family:var(--han)'},ph[0]),h('div',{class:'muted'},ph[1])),
+    h('p',{class:'muted',style:'margin:8px 0 0'},'Tip: carry a small notebook or card to stamp.'));
   return card;
 }
 // ---------- weather panel and nearby ideas ----------
