@@ -1,6 +1,6 @@
 // Service worker: keeps the app and its fonts available offline.
 // Bump CACHE when index.html changes so phones pick up the new version.
-const CACHE = 'trip-kit-v1';
+const CACHE = 'trip-kit-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

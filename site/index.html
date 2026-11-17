@@ -149,7 +149,7 @@ details.g[open]>summary::before{content:"▾"}
 <div class="wrap">
 <header>
   <h1>Three Cities Trip Kit</h1>
-  <p class="sub">Hyderabad to Taiwan, Macau and Hong Kong and back. Dec 16, 2026 to Jan 5, 2027. Everything you tick or type saves in this browser.</p>
+  <p class="sub">Your Taiwan, Macau and Hong Kong trip. Everything you tick or type saves in this browser.</p>
   <span class="count" id="count"></span>
   <p class="muted" style="margin:8px 0 0"><span id="liveStat"></span> <button class="btn ghost" id="liveBtn" style="padding:4px 10px;font-size:12px">Refresh</button></p>
 </header>
@@ -180,11 +180,11 @@ function D(iso,iso2,date,city,title,bookings,note,heads,items){
   return {id:uid(),iso,iso2,date,city,title,bookings,note,heads,items:items.map(i=>({id:uid(),time:i[0],text:i[1],done:false}))};
 }
 const DAYS=[
-D('2026-12-16','2026-12-17','Dec 16–17','Taiwan','Hyderabad → Taipei',
+D('2026-12-16','2026-12-17','Dec 16–17','Taiwan','Home → Taipei',
  [],
  'Your Taipei stay is close to Taipei Main Station. Check-in is usually after 15:00 or 16:00.',
  null,
- [['23:55 Dec 16','Depart Hyderabad (Rajiv Gandhi Intl, T1)'],['05:30 Dec 17','Arrive Hanoi (Noi Bai T2), 3h05m layover'],['08:35','Depart Hanoi for Taipei'],['12:10','Arrive Taipei Taoyuan (T2)'],['13:00','Airport MRT / bus to Taipei Main Station, drop bags'],['16:00','Check in at your Taipei stay'],['18:00','Easy evening walk: Ximending and Taipei Main Station area, dinner at a beef noodle shop']]),
+ [['23:55 Dec 16','Depart your home airport'],['05:30 Dec 17','Arrive Hanoi (Noi Bai T2), 3h05m layover'],['08:35','Depart Hanoi for Taipei'],['12:10','Arrive Taipei Taoyuan (T2)'],['13:00','Airport MRT / bus to Taipei Main Station, drop bags'],['16:00','Check in at your Taipei stay'],['18:00','Easy evening walk: Ximending and Taipei Main Station area, dinner at a beef noodle shop']]),
 D('2026-12-18',null,'Fri Dec 18','Taiwan','Taipei 101 and Xinyi',[],'',
  'Taipei sunset in late December is about 5:05 pm, so a summit "sunset" at 18:00 will be after dark. Start the Elephant Mountain climb around 15:30 instead.',
  [['10:00','Taipei 101 observatory'],['12:30','Lunch in Xinyi shopping district'],['14:30','Xiangshan (Elephant Mountain) hike for the classic Taipei 101 skyline shot'],['18:00','Summit viewpoint, then dinner nearby']]),
@@ -232,9 +232,9 @@ D('2027-01-02',null,'Sat Jan 2','Hong Kong','Lantau Island',[],'',
  [['09:30','Ngong Ping 360 cable car (book Crystal Cabin in advance)'],['10:30','Tian Tan Buddha and Po Lin Monastery'],['13:00','Tai O Fishing Village, boat ride'],['17:00','Citygate Outlets on the way back']]),
 D('2027-01-03',null,'Sun Jan 3','Hong Kong','Photo-spot day',[],'',null,
  [['10:00','Choi Hung Estate'],['16:00','Kennedy Town Basketball Court (tram-through-the-net shot)'],['17:30','Sai Wan Swimming Shed, sunset at the Instagram Pier'],['20:00','Last Hong Kong dinner, pack']]),
-D('2027-01-04','2027-01-05','Jan 4–5','Hong Kong','Hong Kong → Hyderabad',
+D('2027-01-04','2027-01-05','Jan 4–5','Hong Kong','Hong Kong → Home',
  [],'',null,
- [['Morning','Pack, check out of Wan Chai'],['Early afternoon','MTR to Hong Kong Station / Airport Express to HKG (about 24 min from Kowloon Station)'],['15:00','Arrive at airport, duty-free, flight check-in'],['Evening','Depart Hong Kong for Hyderabad']])
+ [['Morning','Pack, check out of Wan Chai'],['Early afternoon','MTR to Hong Kong Station / Airport Express to HKG (about 24 min from Kowloon Station)'],['15:00','Arrive at airport, duty-free, flight check-in'],['Evening','Depart Hong Kong for home']])
 ];
 
 let BOOKINGS=[];
@@ -258,7 +258,7 @@ const PACK={
 // Getting around, by day. Each leg: [route, how, time, ticket, ticketNeeded]. Times and fares are estimates from general knowledge, not live data.
 const GO={
 '2026-12-16':{go:[
- ['Home → Hyderabad airport (RGIA)','Cab or airport bus (Pushpak)','About 1h from most of the city','Boarding pass. Arrive about 3h before the 23:55 departure.',0],
+ ['Home → home airport','Cab or airport bus (Pushpak)','About 1h from most of the city','Boarding pass. Arrive about 3h before the 23:55 departure.',0],
  ['Hanoi layover (3h05m)','Stay airside in Noi Bai T2 and follow the transfer signs','Same terminal, about 20 min to your gate','On one ticket you normally stay in transit. Confirm with your airline that no transit visa is needed.',0],
  ['Taoyuan Airport T2 → Taipei Main Station','Taoyuan Airport MRT (express or commuter) from the T2 station','Express about 35–40 min; commuter about 50 min','About NT$150. Buy a ticket at the machine or pay with an EasyCard (card sold at the MRT service counter).',1],
  ['Taipei Main Station → hostel','Walk, 550 m','About 8 min','Free',0]],
@@ -487,7 +487,7 @@ const TRIP_START='2026-12-16', TRIP_END='2027-01-05';
 // ---------- state ----------
 const fresh=()=>({days:DAYS,filter:'All',tab:'now',shop:[],addr:{},info:{},dl:{},talk:'mandarin',
   rates:{homeName:'INR',TWD:2.8,HKD:11.3,MOP:10.95},
-  budget:{low:46000,high:64000},
+  budget:{low:40000,high:60000},
   expenses:[],todo:TODO,pack:PACK,bookingsDone:{}});
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){S=null}
@@ -704,13 +704,29 @@ function deadlinesCard(){
   });
   return card;
 }
+let swReady=false;
+function setupCard(){
+  if(!window.__PUBLIC__)return null;
+  const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const steps=[
+    [standalone,'Install on your home screen',ios?'In Safari tap the Share button, then Add to Home Screen.':'In Chrome open the menu (three dots), then Install app or Add to Home screen.'],
+    [swReady,'Saved for offline','Open the app once while you have internet. After that it works with no signal.'],
+    [!!S.priv,'Load your trip details','On your private trip page open the Cheat sheet tab and tap Copy my details. Send the text to yourself, then paste it on the Cheat sheet tab here and tap Import.'],
+    [!!LIVE.wxAt,'Live weather and rates','These appear by themselves when you are online.']
+  ];
+  const done=steps.filter(s=>s[0]).length;
+  return h('details',{class:'g',open:done<steps.length},h('summary',null,done===steps.length?'Setup complete':'Set up for your trip ('+done+' of '+steps.length+' done)'),
+    steps.map(s=>h('div',{class:'leg'},h('b',null,(s[0]?'✓ ':'○ ')+s[1]),h('span',{class:'m'},s[2]))));
+}
 function renderNow(){
   const t=today(),toGo=dayDiff(t,TRIP_START);
   const day=S.days.find(d=>t>=d.iso&&t<=(d.iso2||d.iso))||(toGo>0?S.days[0]:null);
   const live=toGo<=0&&day;
   const out=[h('h2',null,live?'Today':'Before you go')];
-  if(!live&&toGo>0)out.push(h('p',{class:'muted'},toGo+' days until you leave Hyderabad. Here is what to do next, and a preview of day 1.'));
+  if(!live&&toGo>0)out.push(h('p',{class:'muted'},toGo+' days until you leave home. Here is what to do next, and a preview of day 1.'));
   if(toGo<=0&&!day)out.push(h('p',{class:'muted'},'The trip is over. Welcome home.'));
+  const sc=setupCard();if(sc)out.push(sc);
   out.push(deadlinesCard());
   if(day){
     const now=new Date(),nowMin=now.getHours()*60+now.getMinutes();
@@ -757,11 +773,11 @@ function renderInfo(){
   });
   out.push(my);
   const mv=h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'Move my details to another copy of this app'),
-    h('p',{class:'muted',style:'margin:0 0 8px'},'Booking numbers, addresses and your private fields are kept out of the public site. Copy them here, then paste them into the app on your phone and tap Import.'));
+    h('p',{class:'muted',style:'margin:0 0 8px'},'Your real plan, bookings, budget, addresses and notes are kept out of the public site. In your private page, tap Copy my details, send the text to yourself (for example by WhatsApp), then paste it into the box below on your phone and tap Import.'));
   const exBox=h('textarea',{class:'daynote',id:'privBox',rows:'4',placeholder:'Paste details here to import',spellcheck:'false','aria-label':'Details to import or export'});
   mv.append(h('div',{class:'row',style:'margin-bottom:8px'},
-    h('button',{class:'btn ghost',onclick:()=>{const t=exportPriv();exBox.value=t;copyText(t,()=>{exBox.focus();exBox.select()})}},'Copy my details'),
-    h('button',{class:'btn',onclick:()=>{try{importPriv(exBox.value);toast('Imported')}catch(e){toast('That text is not valid details.')}}},'Import')),exBox);
+    h('button',{class:'btn ghost',onclick:async()=>{const t=await exportPriv();exBox.value=t;copyText(t,()=>{exBox.focus();exBox.select()})}},'Copy my details'),
+    h('button',{class:'btn',onclick:async()=>{try{await importPriv(exBox.value);toast('Imported. Your plan is loaded.')}catch(e){toast('That text is not valid details.')}}},'Import')),exBox);
   out.push(mv);
   return out;
 }
@@ -793,7 +809,7 @@ function renderShop(){
 
 // ---------- shareable summary ----------
 function summaryText(){
-  const lines=['Trip: Taiwan, Macau and Hong Kong','Dec 16, 2026 to Jan 5, 2027 (Hyderabad return)','','Flights','- Dec 16 (night): Hyderabad to Taipei via Hanoi','- Dec 26: Taipei to Hong Kong','- Jan 4 (evening): Hong Kong to Hyderabad, lands Jan 5','','Stays'];
+  const lines=['Trip: Taiwan, Macau and Hong Kong','Round trip from home','','Flights','- Outbound: home to Taipei via Hanoi','- Taipei to Hong Kong','- Return: Hong Kong to home','','Stays'];
   LODGING.forEach(l=>lines.push('- '+l[0]+', '+l[1]+(l[2]?' ('+l[2]+')':'')));
   lines.push('','Where I will be');
   S.days.forEach(d=>lines.push('- '+d.date+': '+d.title));
@@ -868,7 +884,7 @@ function renderBook(){
     h('span',{class:'txt'},it[0]))));
   return [h('h2',null,'Bookings'),
     h('div',{class:'card'},BOOKINGS.length?tbl:h('p',{class:'muted',style:'margin:0'},'Your booking details are not stored on this page. On the Cheat sheet tab, paste your details and tap Import.')),
-    h('p',{class:'muted'},'Food, local transit and activity tickets are not in the total. Your estimate is INR 46,000–64,000 for those, tracked on the Money tab.'),
+    h('p',{class:'muted'},'Food, local transit and activity tickets are not in the total. Set your own range for those, tracked on the Money tab.'),
     todo,deadlinesCard()];
 }
 
@@ -899,6 +915,9 @@ function renderMoney(){
   const pct=Math.min(100,spent/high*100);
   const budget=h('div',{class:'card'},h('h3',null,'On-trip budget'),
     h('p',{class:'muted'},'INR '+inr(low)+'–'+inr(high)+' for food, local transit and activities over '+days+' days is about INR '+inr(low/days)+'–'+inr(high/days)+' a day.'),
+    h('div',{class:'row',style:'margin:6px 0'},
+      h('label',{class:'muted'},'Low ',h('input',{type:'number',id:'budLow',min:'0',step:'1000',value:low,style:'width:110px',onchange:e=>{const v=parseFloat(e.target.value);if(v>0&&v<=S.budget.high){S.budget.low=v;save();render()}}})),
+      h('label',{class:'muted'},'High ',h('input',{type:'number',id:'budHigh',min:'0',step:'1000',value:high,style:'width:110px',onchange:e=>{const v=parseFloat(e.target.value);if(v>=S.budget.low){S.budget.high=v;save();render()}}}))),
     h('div',{class:'total'},'INR '+inr(spent)),
     h('div',{class:'bar','aria-hidden':'true'},h('i',{style:'width:'+pct+'%'})),
     h('p',{class:'muted',style:'margin:0'},spent>high?'Over the top of your range by INR '+inr(spent-high):'INR '+inr(Math.max(0,low-spent))+' to the low end · INR '+inr(high-spent)+' left at the top'));
@@ -1007,14 +1026,33 @@ function applyPriv(){
   if(Array.isArray(p.lodging))LODGING=p.lodging;
   if(p.dayBookings)S.days.forEach(d=>{if(p.dayBookings[d.iso])d.bookings=p.dayBookings[d.iso]});
 }
-function exportPriv(){
-  const dayBookings={};S.days.forEach(d=>{if(d.bookings&&d.bookings.length)dayBookings[d.iso]=d.bookings});
-  return JSON.stringify({v:1,bookings:BOOKINGS,lodging:LODGING,dayBookings,addr:S.addr||{},info:S.info||{}});
+const b64=bytes=>{let s='';bytes.forEach(b=>{s+=String.fromCharCode(b)});return btoa(s)};
+const unb64=str=>Uint8Array.from(atob(str),c=>c.charCodeAt(0));
+async function gz(data,mode){
+  const cs=mode==='c'?new CompressionStream('gzip'):new DecompressionStream('gzip');
+  const w=cs.writable.getWriter();w.write(typeof data==='string'?new TextEncoder().encode(data):data);w.close();
+  return new Uint8Array(await new Response(cs.readable).arrayBuffer());
 }
-function importPriv(text){
-  const p=JSON.parse(text);
-  if(!p||p.v!==1||!Array.isArray(p.bookings)||!Array.isArray(p.lodging))throw new Error('bad');
+async function exportPriv(){
+  const dayBookings={};S.days.forEach(d=>{if(d.bookings&&d.bookings.length)dayBookings[d.iso]=d.bookings});
+  const json=JSON.stringify({v:2,bookings:BOOKINGS,lodging:LODGING,dayBookings,days:S.days,budget:S.budget,notes:S.notes||'',todo:S.todo,addr:S.addr||{},info:S.info||{}});
+  try{if(window.CompressionStream)return 'TK1:'+b64(await gz(json,'c'))}catch(e){}
+  return json;
+}
+async function importPriv(text){
+  text=text.trim();let json=text;
+  if(text.startsWith('TK1:'))json=new TextDecoder().decode(await gz(unb64(text.slice(4)),'d'));
+  const p=JSON.parse(json);
+  if(!p||(p.v!==1&&p.v!==2)||!Array.isArray(p.bookings)||!Array.isArray(p.lodging))throw new Error('bad');
   S.priv={bookings:p.bookings,lodging:p.lodging,dayBookings:p.dayBookings||{}};
+  if(Array.isArray(p.days)&&p.days.length){
+    const done={};S.days.forEach(d=>d.items.forEach(i=>{if(i.done)done[d.iso+i.text]=1}));
+    p.days.forEach(d=>d.items.forEach(i=>{if(done[d.iso+i.text])i.done=true}));
+    S.days=p.days;
+  }
+  if(p.budget&&p.budget.low>0&&p.budget.high>0)S.budget=p.budget;
+  if(typeof p.notes==='string'&&p.notes&&!S.notes){S.notes=p.notes;const nt=document.getElementById('noteText');if(nt)nt.value=S.notes}
+  if(Array.isArray(p.todo))S.todo=p.todo;
   S.addr=Object.assign(S.addr||{},p.addr||{});S.info=Object.assign(S.info||{},p.info||{});
   applyPriv();save();render();
 }
@@ -1053,7 +1091,10 @@ if(window.__PUBLIC__){
   setInterval(()=>refreshLive(false),30*60*1000);
   addEventListener('online',()=>refreshLive(false));
   addEventListener('offline',setLiveStat);
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.ready.then(()=>{swReady=true;safeRender()}).catch(()=>{});
+  }
 }else{
   document.getElementById('liveBtn').hidden=true;
   document.getElementById('liveStat').hidden=true;
