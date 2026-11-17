@@ -231,6 +231,8 @@ details.g[open]>summary::before{content:"▾"}
   .wrap{max-width:none;min-width:0;margin:0}
   .wrap main{min-width:0}
   .strip{max-width:100%}
+  .layout.noaside{grid-template-columns:96px minmax(0,700px)}
+  .layout.noaside .aside{display:none}
   .aside{display:block;position:sticky;top:28px;max-height:calc(100vh - 56px);overflow:auto;padding:0 2px 12px;scrollbar-width:thin}
   .m-only{display:none!important}
   .toast{bottom:32px}
@@ -1101,9 +1103,7 @@ function renderToday(){
     .map(([l,ic,fn])=>h('button',{class:'qb',onclick:fn},h('span',{class:'qi'},icon(ic,22)),l))));
   if(toGo>0)out.push(dueCard(3));
   if(day){
-    out.push(forecastPanel(day,'m-only'));
-    out.push(extraPanel(day,'m-only'));
-    out.push(stampPanel(day,'m-only'));
+    out.push(forecastPanel(day));
     const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open')));
     day.items.slice(0,6).forEach(it=>card.append(stopRow(day,it)));
     if(day.items.length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(day.items.length-6)+' more on the Plan tab'));
@@ -1149,6 +1149,9 @@ function renderPlan2(){
     card.append(h('div',{class:'row',style:'margin-top:12px'},tm,x,h('button',{class:'btn sm',onclick:add},'Add')));
     out.push(card);
     if(d.note)out.push(h('p',{class:'note',style:'padding:0 4px'},d.note));
+    out.push(extraPanel(d,'m-only'));
+    out.push(foodPanel(d,'m-only'));
+    out.push(stampPanel(d,'m-only'));
   }else if(tab==='go'){
     if(!g)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'No travel notes for this day.')));
     else g.go.forEach(l=>{const m=l[0].split(' → ');
@@ -1156,12 +1159,10 @@ function renderPlan2(){
         h('p',{class:'m'},l[1]+' · '+l[2]),h('p',null,l[3]),m.length===2?h('p',null,aLink(dirUrl(m[0],m[1],d.city),'Directions')):null))});
     if(BACKUP[d.iso])out.push(h('div',{class:'heads'},h('b',null,'Rain or backup plan '),BACKUP[d.iso]));
   }else if(tab==='see'){
-    out.push(extraPanel(d,'m-only'));
-    out.push(stampPanel(d,'m-only'));
     if(!inf)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'Nothing added for this day.')));
     else{
       out.push(h('div',{class:'card'},h('p',{style:'margin:0'},inf.about)));
-      [['Where to eat nearby',inf.eat],['Must buy',inf.buy],['Must visit',inf.visit],['Nearby',g&&g.near]].forEach(([tt,l])=>{
+      [['Must buy',inf.buy],['Must visit',inf.visit],['Nearby',g&&g.near]].forEach(([tt,l])=>{
         if(l&&l.length)out.push(h('div',{class:'card'},h('div',{class:'sec'},tt),h('ul',{class:'list'},l.map(x=>h('li',null,x,tt==='Must visit'||tt==='Nearby'?[' ',aLink(mapUrl(x.split(/[(,]/)[0],d.city),'Map')]:null)))));
       });
     }
@@ -1386,10 +1387,21 @@ function extraPanel(day,extra){
     h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),h('button',{class:'btn sm ghost',onclick:()=>{day.items.push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
   return card;
 }
+function foodPanel(day,extra){
+  const inf=INFO[day.iso];
+  if(!inf||!inf.eat||!inf.eat.length)return h('div',{hidden:true});
+  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Where to eat nearby'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Food ideas for '+day.date+'. Check reviews and opening hours on the map.'));
+  inf.eat.forEach(x=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},x),h('div',{class:'xa'},aLink(mapUrl(x.split(/[(,:]/)[0]+' restaurant',day.city),'Map')))));
+  return card;
+}
 function renderAside(){
   if(!asideEl)return;
-  const d=(S.tab==='plan'&&S.selDay&&S.days.find(x=>x.id===S.selDay))||curDay()||S.days[0];
-  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},'For '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),stampPanel(d));
+  const onPlan=S.tab==='plan'&&!S.sub;
+  const lay=document.querySelector('.layout');
+  if(lay)lay.classList.toggle('noaside',!onPlan);
+  if(!onPlan){asideEl.replaceChildren();return}
+  const d=(S.selDay&&S.days.find(x=>x.id===S.selDay))||curDay()||S.days[0];
+  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},'For '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),foodPanel(d),stampPanel(d));
 }
 // ---- render ----
 function render(){
