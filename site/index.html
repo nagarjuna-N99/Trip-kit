@@ -208,6 +208,10 @@ details.g[open]>summary::before{content:"▾"}
 .daynote{min-height:96px;display:block;margin:0}
 .daynote[hidden]{display:none!important}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(96px,calc(env(safe-area-inset-bottom,0px) + 90px));background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:999px;font:600 14px var(--body);opacity:0;pointer-events:none;z-index:30;transition:opacity .2s;max-width:90vw;text-align:center}
+
+.pimg{flex:0 0 auto;display:grid;place-items:center;border-radius:14px;background:var(--soft);color:var(--muted);overflow:hidden;text-decoration:none}
+.pimg img{width:100%;height:100%;object-fit:cover;display:block}
+.xp .xb{flex:1}
 /* weather rows, nearby ideas, side panel */
 .fr{display:grid;grid-template-columns:92px 84px 1fr;gap:4px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
 .fr:first-of-type{border-top:0}
@@ -1035,7 +1039,7 @@ async function importPriv(text){
   if(typeof p.notes==='string'&&p.notes&&!S.notes){S.notes=p.notes;const nt=document.getElementById('noteText');if(nt)nt.value=S.notes}
   if(Array.isArray(p.todo))S.todo=p.todo;
   S.addr=Object.assign(S.addr||{},p.addr||{});S.info=Object.assign(S.info||{},p.info||{});
-  applyPriv();save();render();
+  applyPriv();applyAdded();save();render();
 }
 // ---------- interface: four places (Today, Plan, Money, More) ----------
 const main=document.getElementById('main'),tabsEl=document.getElementById('tabs'),asideEl=document.getElementById('aside');
@@ -1098,7 +1102,7 @@ function btnLink(href,txt){return h('a',{class:'btn sm',href,target:'_blank',rel
 function stopRow(day,it){
   return h('div',{class:'st'+(it.done?' done':'')},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),legFor(day,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)));
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),legFor(day,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -1472,6 +1476,61 @@ const LEGS={
  '2027-01-03':[[/Kennedy Town Basketball/i,'Walk about 10 min from Kennedy Town station'],[/Sai Wan/i,'Walk about 15 min from Kennedy Town station']]
 };
 function legFor(d,it){const l=LEGS[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m?m[1]:null}
+
+// ---------- place photos: small thumbnails beside each place (hosted app, when online) ----------
+// Pictures come from Wikipedia, matched by name. A match can be wrong or missing, so the title is shown on hover and
+// every thumbnail opens a Google Images search for more photos. Inside the private claude.ai page only the camera icon shows.
+const IMG_SKIP=/^(lunch|dinner|breakfast|check|depart|arrive|head|train|bus\b|ferry|airport|pack|free|return|take|taxi|walk|mrt|thsr|tra\b|puyuma|immigration|flight|last|morning|afternoon|evening|relaxed|easy|optional|scooter|local|spend|hotel|checkout|check-out)/i;
+const IMG_ALIAS=[[/Taipei 101/i,'Taipei 101'],[/Xiangshan|Elephant Mountain/i,'Elephant Mountain Taipei'],[/Rainbow Village/i,'Rainbow Village Taichung'],[/Miyahara/i,'Miyahara Taichung'],[/Calligraphy Greenway/i,'Calligraphy Greenway Taichung'],[/Taichung Park/i,'Taichung Park'],[/Fengjia/i,'Fengjia Night Market'],[/Yingge/i,'Yingge Ceramics Old Street'],[/Longshan/i,'Longshan Temple Taipei'],[/Bopiliao/i,'Bopiliao Historic Block'],[/Huaxi/i,'Huaxi Street Night Market'],[/National Palace Museum/i,'National Palace Museum'],[/Shilin Night/i,'Shilin Night Market'],[/Taitung Seaside/i,'Taitung Seaside Park'],[/Liyu/i,'Liyu Mountain Taitung'],[/Railway Art Village/i,'Taitung Railway Art Village'],[/Zhaori/i,'Zhaori Hot Spring'],[/Dabaisha/i,'Dabaisha Green Island'],[/Guanyin Cave/i,'Guanyin Cave Green Island'],[/Beitou Hot Springs|Thermal Valley/i,'Beitou Thermal Valley'],[/Yangmingshan/i,'Yangmingshan National Park'],[/Grand Lisboa/i,'Grand Lisboa'],[/Ruins of St/i,'Ruins of St. Paul\'s'],[/Senado/i,'Senado Square'],[/Venetian/i,'The Venetian Macao'],[/Parisian/i,'The Parisian Macao'],[/City of Dreams/i,'City of Dreams Macau'],[/House of Dancing Water/i,'The House of Dancing Water'],[/Hopewell/i,'Hopewell Centre Hong Kong'],[/Times Square/i,'Times Square Hong Kong'],[/PMQ/i,'PMQ Hong Kong'],[/Henderson/i,'The Henderson Hong Kong'],[/Harbour City/i,'Harbour City Hong Kong'],[/Peak Tram|Victoria Peak|Sky Terrace/i,'Victoria Peak'],[/Lugard/i,'Lugard Road Hong Kong'],[/Apliu/i,'Apliu Street'],[/Ladies/i,'Ladies\' Market'],[/Sneakers/i,'Sneaker Street Hong Kong'],[/Temple Street/i,'Temple Street Night Market'],[/Avenue of Stars/i,'Avenue of Stars Hong Kong'],[/Wong Tai Sin/i,'Wong Tai Sin Temple'],[/Chi Lin|Nan Lian/i,'Chi Lin Nunnery'],[/M\+/i,'M+ Hong Kong'],[/Ocean Park/i,'Ocean Park Hong Kong'],[/Stanley/i,'Stanley Market'],[/Ngong Ping/i,'Ngong Ping 360'],[/Tian Tan|Po Lin/i,'Tian Tan Buddha'],[/Tai O/i,'Tai O'],[/Citygate/i,'Citygate Outlets'],[/Choi Hung/i,'Choi Hung Estate'],[/Kennedy Town Basketball/i,'Kennedy Town Hong Kong'],[/Sai Wan Swimming/i,'Sai Wan Swimming Shed'],[/Observation Wheel/i,'Hong Kong Observation Wheel'],[/Dadaocheng|Dihua/i,'Dihua Street'],[/Wistaria/i,'Wistaria Tea House'],[/Rua da Felicidade/i,'Rua da Felicidade'],[/Lou Lim/i,'Lou Lim Ioc Garden'],[/Pak Tai/i,'Pak Tai Temple Wan Chai'],[/Blue House/i,'Blue House Wan Chai'],[/Ximending/i,'Ximending'],[/Taipei Botanical/i,'Taipei Botanical Garden'],[/Maokong/i,'Maokong Gondola'],[/Huashan/i,'Huashan 1914 Creative Park'],[/Gaomei/i,'Gaomei Wetlands'],[/Sanxia/i,'Sanxia Old Street'],[/Sleeping Beauty/i,'Sleeping Beauty Rock Green Island'],[/Green Island Lighthouse/i,'Green Island Lighthouse'],[/Mount Fortress|Monte Fort/i,'Mount Fortress Macau'],[/Guia Fortress/i,'Guia Fortress'],[/A-Ma Temple/i,'A-Ma Temple'],[/Coloane/i,'Coloane Village'],[/Tai Kwun/i,'Tai Kwun'],[/Man Mo Temple/i,'Man Mo Temple Hong Kong'],[/Kowloon Walled City/i,'Kowloon Walled City Park'],[/Palace Museum/i,'Hong Kong Palace Museum'],[/Western Market/i,'Western Market Hong Kong'],[/Wisdom Path/i,'Wisdom Path Lantau'],[/Pier-2/i,'Pier-2 Art Center'],[/Lotus Pond/i,'Lotus Pond Kaohsiung'],[/Sun Moon Lake/i,'Sun Moon Lake']];
+const GENERIC_TOK=new Set(['street','market','night','hong','kong','taiwan','macau','macao','park','temple','hot','spring','square','museum','road','island','beach','garden','view']);
+const toks=t=>String(t).toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=3&&!GENERIC_TOK.has(w));
+const photosUrl=q=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+const aliasQuery=text=>{for(const [re,q] of IMG_ALIAS)if(re.test(text))return q;return null};
+let IMGC={};try{IMGC=JSON.parse(localStorage.getItem('trip-img-v1')||'{}')}catch(e){}
+const saveImgC=()=>{try{localStorage.setItem('trip-img-v1',JSON.stringify(IMGC))}catch(e){}};
+let imgActive=0;const imgQueue=[];
+function imgNext(){
+  while(imgActive<3&&imgQueue.length){
+    const job=imgQueue.shift();imgActive++;
+    findImg(job.q).then(rec=>{IMGC[job.q]=rec||0;saveImgC();if(rec)job.cb(rec)}).catch(()=>{}).finally(()=>{imgActive--;imgNext()});
+  }
+}
+async function findImg(q){
+  const url='https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrlimit=3&prop=pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=200&format=json&origin=*';
+  const j=await getJson(url);const pages=Object.values((j.query&&j.query.pages)||{}).sort((a,b)=>(a.index||9)-(b.index||9));
+  const want=toks(q);
+  for(const pg of pages){
+    if(!pg.thumbnail)continue;
+    const have=new Set(toks(pg.title));
+    if(want.length&&!want.some(w=>have.has(w)))continue;   // only accept a page whose title shares a distinctive word with the place
+    return {u:pg.thumbnail.source,t:pg.title,w:pg.fullurl||''};
+  }
+  return null;
+}
+function showImg(box,rec){
+  const img=h('img',{src:rec.u,alt:box.dataset.n||'Place photo',loading:'lazy'});
+  img.addEventListener('error',()=>{box.replaceChildren(icon('camera',18))});
+  box.replaceChildren(img);box.title=rec.t+' (Wikipedia). Tap for more photos.';
+}
+const imgObs=('IntersectionObserver' in window)?new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){imgObs.unobserve(en.target);loadThumb(en.target)}}),{rootMargin:'250px'}):null;
+function loadThumb(box){
+  const q=box.dataset.q,rec=IMGC[q];
+  if(rec){showImg(box,rec);return}
+  if(rec===0||!window.__PUBLIC__||navigator.onLine===false)return;
+  imgQueue.push({q,cb:r=>showImg(box,r)});imgNext();
+}
+function placeThumb(name,city,size){
+  const q=aliasQuery(name)||(name+' '+cityName(city));
+  const box=h('a',{class:'pimg',href:photosUrl(q),target:'_blank',rel:'noopener','aria-label':'Photos of '+name,title:'More photos of '+name,style:'width:'+size+'px;height:'+size+'px'},icon('camera',18));
+  box.dataset.q=q;box.dataset.n=name;
+  if(imgObs)imgObs.observe(box);else loadThumb(box);
+  return box;
+}
+function thumbFor(day,it){
+  const name=it.text.split(/[,:(]/)[0].trim();
+  if(!aliasQuery(it.text)&&IMG_SKIP.test(name))return null;
+  return placeThumb(aliasQuery(it.text)?it.text:name,day.city,56);
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1560,11 +1619,11 @@ function stampPanel(day,extra){
 const PHOTO_PLAN={
  '2026-12-18':{why:'Taipei sunset is about 17:05, so the Elephant Mountain hike now starts at 15:45 and you are on the platforms by 16:30, instead of starting at 14:30 and reaching the summit at 18:00.',
   items:[['10:00','Taipei 101 observatory'],['12:30','Lunch in Xinyi shopping district'],['15:45','Xiangshan (Elephant Mountain) hike, aim to reach the platforms by 16:30'],['16:30','Golden hour at the summit viewpoint, sunset about 17:05'],['17:45','Dinner nearby']]},
- '2026-12-27':{why:'Senado Square is quietest early in the morning, and the Ruins of St. Paul\'s look best around golden hour (about 16:45 to 17:30). This adds one extra trip between the old town and Cotai, and leaves the late morning free.',
+ '2026-12-27':{why:'Senado Square is quietest early in the morning, and the Ruins of St. Paul\'s look best around golden hour (about 16:45 to 17:30). This adds one extra trip between the old town and Cotai.',
   go:'Extra trip: after the Venetian and Parisian, take a free shuttle or taxi back to the old town for the Ruins at 16:45, then return to Cotai for City of Dreams.',
-  items:[['08:30','Senado Square, mosaic pavement before the crowds'],['12:30','Lunch: Portuguese egg tarts, local Macanese food'],['14:30','The Venetian / The Parisian: canals, gondola rides, casino floor'],['16:15','Head back to the old town'],['16:45','Ruins of St. Paul\'s at golden hour'],['18:45','City of Dreams'],['20:30','House of Dancing Water show (if booked) or dinner at Cotai Strip']]},
+  items:[['08:30','Senado Square, mosaic pavement before the crowds'],['10:00','Rua da Felicidade, on the walk from Senado Square (about 5 min)'],['10:45','Lou Lim Ioc Garden (about 10–15 min walk), then lunch'],['12:30','Lunch: Portuguese egg tarts, local Macanese food'],['14:30','The Venetian / The Parisian: canals, gondola rides, casino floor'],['16:15','Head back to the old town'],['16:45','Ruins of St. Paul\'s at golden hour'],['18:45','City of Dreams'],['20:30','House of Dancing Water show (if booked) or dinner at Cotai Strip']]},
  '2026-12-29':{why:'Going up the Peak at 17:15 catches the sunset (about 17:45) and the blue hour from the Sky Terrace, then you walk Lugard Road once it is dark.',
-  items:[['11:00','PMQ Staunton'],['13:00','The Henderson (photo stop)'],['14:30','Harbour City, Tsim Sha Tsui, shopping'],['16:30','Head to the Peak Tram terminus'],['17:15','Peak Tram up to Victoria Peak, Sky Terrace for dusk'],['19:30','Lugard Road night walk (a tripod helps), then dinner']]},
+  items:[['11:00','PMQ Staunton'],['13:00','The Henderson (photo stop)'],['13:45','Hong Kong Observation Wheel at Central Pier (about a 15 minute ride)'],['14:30','Harbour City, Tsim Sha Tsui, shopping'],['16:30','Head to the Peak Tram terminus'],['17:15','Peak Tram up to Victoria Peak, Sky Terrace for dusk'],['19:30','Lugard Road night walk (a tripod helps), then dinner']]},
  '2026-12-30':{why:'The Symphony of Lights starts at 20:00, so Temple Street moves earlier and you reach the Avenue of Stars by 19:45 to get a good spot.',
   items:[['10:00','Apliu Street Flea Market, Sham Shui Po'],['14:00','Ladies\' Market, Tung Choi Street'],['16:00','Sneakers Street, Fa Yuen Street'],['17:30','Temple Street Night Market, early dinner'],['19:45','Avenue of Stars: Symphony of Lights over Victoria Harbour (show starts at 20:00)']]},
  '2027-01-01':{why:'Sunset is about 17:55, so you reach the Stanley waterfront by 17:15 instead of 18:00. The coastal bus leaves a little earlier to match.',
@@ -1593,6 +1652,33 @@ function photoBanner(d,pp){
     h('div',{style:'padding:6px 14px 12px'},d.items.map(it=>h('div',{class:'muted',style:'padding:2px 0'},(it.time?it.time+'  ':'')+it.text)))));
   return card;
 }
+
+// ---------- places added to your stops from the updated list (kept once, then yours to edit) ----------
+const ADDED=[
+ {iso:'2026-12-16',after:/Airport MRT/,items:[['14:15','Dadaocheng Old Street (Dihua Street), optional if you are tired. Shops close around 18:00']]},
+ {iso:'2026-12-21',after:/Free afternoon/,items:[['15:30','Wistaria Tea House (check opening hours)']]},
+ {iso:'2026-12-27',after:/Ruins/,mode:'orig',items:[['11:00','Rua da Felicidade, on the walk from Senado Square (about 5 min)'],['11:30','Lou Lim Ioc Garden (about 10–15 min walk), then lunch']]},
+ {iso:'2026-12-27',after:/Senado Square, mosaic/,mode:'photo',items:[['10:00','Rua da Felicidade, on the walk from Senado Square (about 5 min)'],['10:45','Lou Lim Ioc Garden (about 10–15 min walk), then lunch']]},
+ {iso:'2026-12-28',after:/Check in at/,items:[['15:30','Pak Tai Temple, about 5–10 min walk (check hours, it closes late afternoon)'],['16:15','Blue House cluster, about 10 min walk']]},
+ {iso:'2026-12-29',after:/Henderson/,items:[['13:45','Hong Kong Observation Wheel at Central Pier (about a 15 minute ride)']]}
+];
+function insertAfter(list,after,items){
+  let idx=list.findIndex(i=>after.test(i.text));
+  items.forEach(([time,text])=>{
+    if(list.some(i=>i.text===text))return;
+    const it={id:uid(),time,text,done:false};
+    if(idx>=0){list.splice(idx+1,0,it);idx++}else list.push(it);
+  });
+}
+function applyAdded(){
+  S.days.forEach(d=>{
+    ADDED.filter(a=>a.iso===d.iso).forEach(a=>{
+      if(a.mode!=='photo')insertAfter(d.items,a.after,a.items);
+      if(a.mode!=='orig'&&PHOTO_PLAN[d.iso]){S.pitems=S.pitems||{};if(S.pitems[d.iso])insertAfter(S.pitems[d.iso],a.after,a.items)}
+    });
+  });
+  S.addedV=1;
+}
 // ---------- possible but not added, and skipped places (your plan is not changed) ----------
 const IDEA_ONLY=[['Hong Kong Observation Wheel','2026-12-29','Fits between The Henderson and Harbour City, next to Central Pier. Listed as an idea only; add it yourself if you want it.']];
 const SKIPPED=[
@@ -1604,14 +1690,15 @@ const SKIPPED=[
 function skippedCard(){
   const card=h('div',{class:'card'},h('h3',null,'Possible ideas and skipped places'),
     h('p',{class:'muted',style:'margin:2px 0 6px'},'Your plan is unchanged. These are places from your list that are not in it.'));
-  card.append(h('div',{class:'sec',style:'margin-top:8px'},'Possible, not added'));
-  IDEA_ONLY.forEach(([n,iso,why])=>{
+  const idea=IDEA_ONLY.filter(([n,iso])=>{const dd=S.days.find(x=>x.iso===iso);return !dd||!dayItems(dd).some(i=>i.text.includes(n))});
+  if(idea.length)card.append(h('div',{class:'sec',style:'margin-top:8px'},'Possible, not added'));
+  idea.forEach(([n,iso,why])=>{
     const day=S.days.find(x=>x.iso===iso);
-    card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),day?h('div',{class:'muted'},dayInfo(day).n+' · '+day.date):null),
+    card.append(h('div',{class:'xp'},placeThumb(n,day?day.city:'Hong Kong',64),h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),day?h('div',{class:'muted'},dayInfo(day).n+' · '+day.date):null),
       h('div',{class:'xa'},aLink(mapUrl(n,day?day.city:'Hong Kong'),'Map'),day?h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;S.planTab='stops';save();render();window.scrollTo({top:0})}},'Open day'):null)));
   });
   card.append(h('div',{class:'sec',style:'margin-top:12px'},'Skipped'));
-  SKIPPED.forEach(([n,where,why,what])=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n+' · '+where),h('div',{class:'muted'},why),h('div',{class:'muted'},what)),
+  SKIPPED.forEach(([n,where,why,what])=>card.append(h('div',{class:'xp'},placeThumb(n,'Taiwan',64),h('div',{class:'xb'},h('b',null,n+' · '+where),h('div',{class:'muted'},why),h('div',{class:'muted'},what)),
     h('div',{class:'xa'},aLink(mapUrl(n,'Taiwan'),'Map')))));
   return card;
 }
@@ -1647,7 +1734,7 @@ function photoRow(sp,withDay){
   const acts=[aLink(mapUrl(n,city==='Taiwan'?'Taiwan':city),'Map'),walkLink(n,city)];
   if(withDay&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>openDay(iso)},'Open day'));
   if(!inPlan&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add'));
-  return h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n),h('div',null,best),h('div',{class:'muted'},why),
+  return h('div',{class:'xp'},placeThumb(n,city==='Taiwan'?'Taiwan':city,64),h('div',{class:'xb'},h('b',null,n),h('div',null,best),h('div',{class:'muted'},why),
     withDay&&day?h('div',{class:'muted'},dayInfo(day).n+' · '+day.date):null,
     note?h('div',{style:flag?'color:var(--warn);font-size:13px;margin-top:4px':'font-size:13px;color:var(--muted);margin-top:4px'},(flag?'Note: ':'')+note):null,
     inPlan?null:h('span',{class:'tg need',style:'display:inline-block;margin-top:6px'},'Not on your plan')),
@@ -1731,10 +1818,11 @@ function forecastPanel(day,extra){
   return card;
 }
 function extraPanel(day,extra){
-  const l=EXTRA[day.iso];
+  const have=dayItems(day).map(i=>i.text.toLowerCase()).join(' | ');
+  const l=(EXTRA[day.iso]||[]).filter(e=>!have.includes(e[0].toLowerCase().split(' (')[0]));
   if(!l||!l.length)return h('div',{hidden:true});
   const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Nearby, not on your plan'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Ideas close to where you are on '+day.date+'. Tap Add to put one on your stops.'));
-  l.forEach(([n,why,how,tag])=>card.append(h('div',{class:'xp'},
+  l.forEach(([n,why,how,tag])=>card.append(h('div',{class:'xp'},placeThumb(n,day.city,64),
     h('div',{class:'xb'},h('b',null,n),tag?h('div',null,h('span',{class:'tg free'},tag)):null,h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
     h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),walkLink(n,day.city),h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
   return card;
@@ -1768,6 +1856,7 @@ function render(){
 }
 S.sub=S.sub||null;
 applyPriv();
+if(!S.addedV)applyAdded();
 render();
 // live data and offline: only on the hosted site, where the browser allows outside requests and service workers
 if(window.__PUBLIC__){

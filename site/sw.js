@@ -1,6 +1,6 @@
 // Service worker: keeps the app and its fonts available offline.
 // Bump CACHE when index.html changes so phones pick up the new version.
-const CACHE = 'trip-kit-v18';
+const CACHE = 'trip-kit-v19';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -14,7 +14,8 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const sameOrigin = url.origin === location.origin;
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (!sameOrigin && !isFont) return; // weather and rate requests go straight to the network; the app saves their results itself
+  const isPhoto = url.hostname === 'upload.wikimedia.org'; // place thumbnails, kept for offline use
+  if (!sameOrigin && !isFont && !isPhoto) return; // weather and rate requests go straight to the network; the app saves their results itself
   if (req.mode === 'navigate') {
     // network first so updates arrive, cache fallback so it opens offline
     e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); return r; }).catch(() => caches.match('./index.html')));
