@@ -1117,7 +1117,7 @@ function btnLink(href,txt){return h('a',{class:'btn sm',href,target:'_blank',rel
 function stopRow(day,it){
   return h('div',{class:'st'+(it.done?' done':'')},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),cheapFor(it)?cheapNode(it):howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -1241,7 +1241,7 @@ function renderPlan2(){
     {const rs=dayItems(d).filter(it=>howFor(d,it));
      if(rs.length){const c=h('div',{class:'card'},h('div',{class:'sec'},'Shortest route to each stop'));
        rs.forEach(it=>c.append(h('div',{class:'st'},h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('b',null,stopName(it)),
-         h('div',{style:'font-size:13px;margin-top:2px'},howFor(d,it)),howPay(d,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},'Ticket or pass: '+howPay(d,it)):null,
+         h('div',{style:'font-size:13px;margin-top:2px'},howFor(d,it)),cheapFor(it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},'Cheapest: '+cheapFor(it)[1]):howPay(d,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},'Ticket or pass: '+howPay(d,it)):null,
          h('div',null,transitLink(d,it)||'')))));
        out.push(c);out.push(h('p',{class:'note',style:'padding:0 4px'},'Routes are the usual fastest public-transport options from general knowledge, not live timetables. Tap Transit on any stop for live bus and train times. Taxis are quicker when you are tired or the connection is awkward.'))}}
     if(!g)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'No travel notes for this day.')));
@@ -1935,6 +1935,28 @@ const HOW={
   [/MTR to Hong Kong Station|Airport Express/i,'MTR to Hong Kong Station, then the Airport Express to HKG, about 24 min. In-town check-in at Hong Kong Station may be possible, ask your airline.','Airport Express: tap Octopus or buy a single ticket (about HK$ 115) at the machine. Use any Octopus balance first.']]
 };
 function howFor(d,it){const l=HOW[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m?m[1]:null}
+// ---------- cheapest way to pay, shown right on the stop ----------
+// [text pattern, the cheapest known way, search words for Klook/KKday or null]. No live prices: compare the final INR price before paying.
+const CHEAP=[
+ [/Airport MRT|bus to Taipei Main/i,'Take the Commuter (blue) train or tap an EasyCard, no booking needed. Reseller airport-MRT vouchers sometimes save a little, so a quick Klook look is worth it before you fly.','Taoyuan Airport MRT ticket'],
+ [/observatory/i,'Buy online ahead. Resellers often list it a little below the gate price.','Taipei 101 observatory ticket'],
+ [/THSR\/TRA/i,'Slower TRA Tze-Chiang is the cheapest seat. For THSR, compare the T-EX early-bird price with Klook or KKday.','Taiwan High Speed Rail Taipei Taichung'],
+ [/Train back/i,'Buy the return THSR in advance. Early-bird fares on T-EX are often lowest.',null],
+ [/Puyuma Express|Train from Taitung/i,'The official TRA price is the cheapest. Do not pay a reseller.',null],
+ [/Ferry from Fugang|ferry back/i,'Pay at the counter. Resellers add a fee.',null],
+ [/Ngong Ping 360/i,'Book online ahead. Klook and KKday are often cheaper than the counter.','Ngong Ping 360 Crystal Cabin ticket'],
+ [/Ocean Park/i,'Book online ahead. This is where Klook and KKday most often beat the gate price.','Ocean Park Hong Kong ticket'],
+ [/Peak Tram/i,'Buy the Peak Tram and Sky Terrace combo online instead of at the counter.','Peak Tram Sky Terrace 428 ticket'],
+ [/M\+/i,'Book on the official site. Resellers rarely save money.',null],
+ [/National Palace Museum/i,'Buy at the museum or on the official site. It is already cheap.',null],
+ [/Immigration at HKG|HZMB shuttle bus back/i,'Check Klook or KKday for a discounted HZMB e-ticket before buying at the counter.','HZMB bus Hong Kong Macau'],
+ [/MTR to Hong Kong Station|Airport Express/i,'Tap Octopus. Compare with a Klook Airport Express ticket and the A21 bus if you are not rushed.','Airport Express Hong Kong ticket']
+];
+function cheapFor(it){const m=CHEAP.find(x=>x[0].test(it.text));return m||null}
+function cheapNode(it){
+  const c=cheapFor(it);if(!c)return null;
+  return h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Cheapest: '),c[1],c[2]?[' ',aLink(KLOOK(c[2]),'Klook'),' ',aLink(KKDAY(c[2]),'KKday')]:null);
+}
 function howPay(d,it){const l=HOW[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m&&m[2]&&m[2]!=='-'?m[2]:null}
 const transitUrl=(a,b,city)=>'https://www.google.com/maps/dir/?api=1&travelmode=transit'+(a?'&origin='+encodeURIComponent(a+' '+cityName(city)):'')+'&destination='+encodeURIComponent(b+' '+cityName(city));
 function stopName(it){return it.text.split(/[,:(]/)[0].trim()}
