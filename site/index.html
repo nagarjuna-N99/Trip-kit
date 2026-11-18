@@ -411,7 +411,7 @@ const GO={
  ['Seaside Park → Liyu (Carp) Mountain → Railway Art Village','Taxi or bike. Liyu is a short walk from the old railway area.','About 10–15 min each hop','Free entry',0]],
  near:['Taitung Railway Art Village and Tiehua Village Music Plaza','Taitung Forest Park and the Peacock Pond area','Zhiben Hot Spring area (about 20 min by taxi)','Taitung Night Market on Zhongshan Rd']},
 '2026-12-23':{go:[
- ['Hostel → Fugang Harbour','Taxi, about 20 km north of Taitung city','About 35–40 min','About NT$800–1,000. Book the taxi the evening before.',0],
+ ['Hostel → Fugang Harbour','Taxi from Taitung city (about 10 km)','About 20–25 min','About NT$350–450. Book the taxi the evening before.',0],
  ['Fugang Harbour → Green Island','Ferry (several departures a day)','About 30–50 min','Ticket about NT$500–550 each way. Buy at the harbour or online. Bring your passport. Check the sea forecast the evening before.',1],
  ['Harbour → hostel on Green Island','Hostel pick-up or short taxi','About 10 min','Ask the hostel to meet the ferry',0],
  ['Scooter ring road','About 20 km loop around the island','About 1h without stops','Scooter about NT$350–500 a day. Check licence rules first, or hire an e-bike or take an island tour.',1],
@@ -419,7 +419,7 @@ const GO={
  near:['Guanyin Cave and Little Great Wall','Sika deer park and Niutou Mountain','Dabaisha snorkelling beach','Green Island Prison Cultural Park and Human Rights Memorial']},
 '2026-12-24':{go:[
  ['Green Island → Fugang Harbour','Ferry','About 30–50 min','Ticket about NT$500–550. Book the return when you arrive.',1],
- ['Fugang Harbour → Taitung Station','Taxi or shuttle','About 35–40 min','About NT$800–1,000',0],
+ ['Fugang Harbour → Taitung Station','Taxi','About 20–25 min','About NT$350–450',0],
  ['Taitung → Taipei Main Station','TRA express (Puyuma or Tze-Chiang)','About 3.5–4.5h','Reserved ticket needed. This leg is not booked yet. Book with the Dec 22 ticket.',1],
  ['Taipei Main Station → hostel','Walk','About 8 min','Free',0]],
  near:['Taitung Railway Art Village for a last meal before the train','Green Island: Zhaori Hot Spring at sunrise before you leave','Taipei Main Station underground food street','Q-Square mall next to the station']},
@@ -757,7 +757,7 @@ function tripDays(){
 }
 const CASH_SHARE={'Taiwan':0.35,'Taitung':0.55,'Green Island':0.85,'Macau':0.2,'Hong Kong':0.15};
 const CASH_CUR={'Taiwan':'TWD','Taitung':'TWD','Green Island':'TWD','Macau':'MOP','Hong Kong':'HKD'};
-const CASH_FIXED=[['TWD',3550,'Green Island ferry both ways, Taitung to Fugang taxis, scooter and hot spring'],['HKD',250,'Two HZMB shuttle bus rides and a port bus'],['MOP',300,'Macau taxis']];
+const CASH_FIXED=[['TWD',2550,'Green Island ferry both ways, two Taitung to Fugang taxis, scooter and hot spring'],['HKD',250,'Two HZMB shuttle bus rides and a port bus'],['MOP',300,'Macau taxis']];
 function cashCard(){
   const r=S.rates,{low,high}=S.budget,mid=(low+high)/2/19;
   const tot={TWD:0,HKD:0,MOP:0},why=[];let rainDays=0,known=0;
@@ -1142,6 +1142,7 @@ function renderToday(){
   if(toGo>0)out.push(dueCard(3));
   if(day){
     out.push(forecastPanel(day));
+    out.push(offlineMapCard(day));
     const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open')));
     dayItems(day).slice(0,6).forEach(it=>card.append(stopRow(day,it)));
     if(dayItems(day).length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(dayItems(day).length-6)+' more on the Plan tab'));
@@ -1194,6 +1195,7 @@ function renderPlan2(){
     out.push(foodPanel(d,'m-only'));
     out.push(stampPanel(d,'m-only'));
     out.push(photoPanel(d,'m-only'));
+    out.push(offlineMapCard(d,'m-only'));
   }else if(tab==='go'){
     {const pp=photoMode()&&PHOTO_PLAN[d.iso];if(pp)out.push(h('div',{class:'heads'},h('b',null,'Photo-timed order '),pp.go||'The travel notes below still apply to the photo-timed order.'))}
     if(!g)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'No travel notes for this day.')));
@@ -1365,6 +1367,74 @@ function renderPrint(){
   out.push(h('p',{class:'muted'},printDays(o).length+' days, '+printDays(o).reduce((a,x)=>a+x.items.length,0)+' stops. About 7 to 9 pages on A4.'));
   return out;
 }
+
+// ---------- offline map areas (open your map app on a saved offline area) ----------
+// [name, lat, lng, zoom]. Approximate centres. The links only work with no signal if you saved that area in your map app.
+const AREAS={
+ '2026-12-16':[['Taipei city centre',25.0478,121.5170,12],['Taoyuan Airport',25.0777,121.2328,13]],
+ '2026-12-18':[['Xinyi and Taipei 101',25.0340,121.5645,14]],
+ '2026-12-19':[['Taichung centre',24.1477,120.6736,13]],
+ '2026-12-20':[['Yingge',24.9296,121.3412,14],['Longshan Temple and Wanhua',25.0372,121.4999,15]],
+ '2026-12-21':[['National Palace Museum and Shilin',25.1024,121.5485,14]],
+ '2026-12-22':[['Taipei Main Station area',25.0478,121.5170,12],['Taitung city',22.7583,121.1444,13]],
+ '2026-12-23':[['Taitung coast and Fugang Harbour',22.7900,121.1950,12],['Green Island',22.6617,121.4937,13]],
+ '2026-12-24':[['Taitung coast and Fugang Harbour',22.7900,121.1950,12],['Taipei Main Station area',25.0478,121.5170,12]],
+ '2026-12-25':[['Beitou and Yangmingshan',25.1370,121.5200,12]],
+ '2026-12-26':[['Taoyuan Airport',25.0777,121.2328,12],['Hong Kong Airport and HZMB port',22.3080,113.9185,11],['Taipa, Macau',22.1587,113.5560,13]],
+ '2026-12-27':[['Macau old town',22.1938,113.5400,14],['Cotai Strip',22.1450,113.5600,14]],
+ '2026-12-28':[['Taipa and Macau Port',22.1587,113.5560,12],['Wan Chai and Causeway Bay',22.2790,114.1760,15]],
+ '2026-12-29':[['Central',22.2810,114.1580,15],['Tsim Sha Tsui',22.2970,114.1722,15],['Victoria Peak',22.2759,114.1455,15]],
+ '2026-12-30':[['Mong Kok and Sham Shui Po',22.3200,114.1690,14],['Tsim Sha Tsui waterfront',22.2930,114.1740,15]],
+ '2026-12-31':[['Wong Tai Sin and Diamond Hill',22.3420,114.1950,14],['West Kowloon',22.3040,114.1600,14]],
+ '2027-01-01':[['Ocean Park and Aberdeen',22.2480,114.1750,13],['Stanley',22.2190,114.2110,14]],
+ '2027-01-02':[['Tung Chung',22.2890,113.9410,14],['Ngong Ping and Tai O',22.2550,113.8850,12]],
+ '2027-01-03':[['Choi Hung',22.3350,114.2090,15],['Kennedy Town and Sai Wan',22.2810,114.1280,15]],
+ '2027-01-04':[['Hong Kong Station',22.2849,114.1580,15],['Hong Kong Airport',22.3080,113.9185,13]]
+};
+// bigger areas to download once, so every day above is covered
+const OFFLINE_DOWNLOADS=[
+ ['Greater Taipei, Yingge, Beitou and Taoyuan Airport',25.0000,121.4300,10],
+ ['Taichung',24.1500,120.6700,11],
+ ['Taitung and Green Island',22.7200,121.3000,10],
+ ['Macau',22.1700,113.5500,12],
+ ['Hong Kong including Lantau and the airport',22.3300,114.1200,10]
+];
+const gmapsLink=a=>'https://www.google.com/maps/@'+a[1]+','+a[2]+','+a[3]+'z';
+const amapsLink=a=>'https://maps.apple.com/?ll='+a[1]+','+a[2]+'&z='+a[3];
+const geoLink=a=>'geo:'+a[1]+','+a[2]+'?z='+a[3];
+function offlineSteps(){
+  return h('details',{class:'g',style:'margin-top:8px'},h('summary',null,'How to save an area for offline use'),
+    h('ul',{class:'near',style:'padding-top:10px'},
+      h('li',null,'Google Maps: tap your profile picture, Offline maps, Select your own map, drag the box over the area, then Download. Do it on Wi-Fi.'),
+      h('li',null,'Apple Maps (iPhone, iOS 17 or newer): tap your profile or the search bar, Offline Maps, Download New Map, then pick the area.'),
+      h('li',null,'Free option: install Organic Maps or OsmAnd and download the Taiwan, Hong Kong and Macau maps once.'),
+      h('li',null,'Each city is roughly 100 to 300 MB. Download them before you leave home.')));
+}
+function offlineMapCard(day,extra){
+  const l=AREAS[day.iso];
+  if(!l)return h('div',{hidden:true});
+  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Offline map for this day'),
+    h('p',{class:'muted',style:'margin:2px 0 4px'},'These links open your map app on today\'s area. They work with no signal only if you saved that area first.'));
+  l.forEach(a=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,a[0])),
+    h('div',{class:'xa'},aLink(gmapsLink(a),'Google Maps'),aLink(amapsLink(a),'Apple Maps'),aLink(geoLink(a),'Other map app')))));
+  card.append(offlineSteps());
+  return card;
+}
+function renderOfflineMaps(){
+  S.mapsDone=S.mapsDone||{};
+  const out=[h('p',{class:'muted'},'Save these five areas in your map app once, on Wi-Fi, before you leave. They cover every day of your trip. Then the day links on the Plan page open them with no signal.')];
+  const card=h('div',{class:'card'},h('h3',{style:'margin-bottom:4px'},'Download once'));
+  OFFLINE_DOWNLOADS.forEach(a=>{
+    const done=!!S.mapsDone[a[0]];
+    card.append(h('div',{class:'st'+(done?' done':'')},
+      h('button',{class:'ck'+(done?' on':''),'aria-pressed':done?'true':'false','aria-label':(done?'Undo ':'Mark downloaded: ')+a[0],onclick:()=>{S.mapsDone[a[0]]=!done;save();render()}},done?icon('check',16):null),
+      h('div',{class:'stb'},h('div',null,a[0]),h('div',{class:'row',style:'gap:12px;margin-top:4px'},aLink(gmapsLink(a),'Google Maps'),aLink(amapsLink(a),'Apple Maps'),aLink(geoLink(a),'Other map app')))));
+  });
+  out.push(card);
+  out.push(h('div',{class:'card'},offlineSteps().cloneNode(true)));
+  out.push(h('p',{class:'muted'},'Tip: also save the stations you use, for example Taipei Main Station and Hong Kong Station, by zooming in before you download.'));
+  return out;
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1376,6 +1446,7 @@ const TILES=[
   ['pass','Cards and apps','card','Octopus, EasyCard, links'],
   ['share','Share summary','send','Text for family'],
   ['notes','Notes','pencil','Anything you jot down'],
+  ['offmap','Offline maps','map','Download once, use with no signal'],
   ['print','Print itinerary','printer','Print or save as PDF'],
   ['photo','Photo spots','camera','Best light for each spot'],
   ['setup','Setup','gear','Offline, live data, import']
@@ -1407,7 +1478,7 @@ function renderSetup(){
     h('button',{class:'btn sm',onclick:()=>go('more','cheat')},'Open the import box')));
   return out;
 }
-const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],setup:['Setup',renderSetup]};
+const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],offmap:['Offline maps',renderOfflineMaps],setup:['Setup',renderSetup]};
 function renderSub(id){
   const s=SUBS[id];if(!s)return renderMore();
   let body=s[1]();
@@ -1644,7 +1715,7 @@ function renderAside(){
   if(lay)lay.classList.toggle('noaside',!onPlan);
   if(!onPlan){asideEl.replaceChildren();return}
   const d=(S.selDay&&S.days.find(x=>x.id===S.selDay))||curDay()||S.days[0];
-  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},dayInfo(d).n+' · '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),foodPanel(d),stampPanel(d),photoPanel(d));
+  asideEl.replaceChildren(h('div',{class:'kick',style:'padding:6px 4px 10px'},dayInfo(d).n+' · '+d.date+' · '+d.city),forecastPanel(d),extraPanel(d),foodPanel(d),stampPanel(d),photoPanel(d),offlineMapCard(d));
 }
 // ---- render ----
 function render(){
