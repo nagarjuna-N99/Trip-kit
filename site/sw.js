@@ -1,17 +1,23 @@
 // Service worker: keeps the app and its fonts available offline.
 // Bump CACHE when index.html changes so phones pick up the new version.
-const CACHE = 'trip-kit-v27';
+const CACHE = 'trip-kit-v28';
+const TILES = 'trip-tiles-v1'; // map tiles and the map library, kept across app updates
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== TILES).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET') return;
+  if (url.hostname === 'tile.openstreetmap.org' || url.hostname === 'cdn.jsdelivr.net') {
+    // map tiles and the map library: cache first, so a saved day opens with no signal
+    e.respondWith(caches.open(TILES).then(c => c.match(req).then(hit => hit || fetch(req).then(r => { c.put(req, r.clone()); return r; }).catch(() => hit))));
+    return;
+  }
   const sameOrigin = url.origin === location.origin;
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   const isPhoto = url.hostname === 'upload.wikimedia.org'; // place thumbnails, kept for offline use
