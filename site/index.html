@@ -622,6 +622,7 @@ if(S.planV!==2){
   DAYS.forEach(d=>{d.items.forEach(i=>{if(oldDone[d.iso+'|'+i.text])i.done=true});if(oldNote[d.iso])d.myNote=oldNote[d.iso]});
   S.pitems={};S.light={};S.addedV=1;S.planV=2;
 }
+S.planMode='photo';
 if(!S.todo.some(t=>/Dec 24/.test(t[0])))S.todo.splice(1,0,['Book the Taitung → Taipei train for Dec 24 (13:00). It is in your plan but not in your bookings.',0]);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
@@ -1207,6 +1208,14 @@ function renderPlan2(){
     a?h('div',{class:'mini'},Math.round(a.w.tmin)+'–'+Math.round(a.w.tmax)+'°C · rain '+(a.w.pop==null?'?':a.w.pop+'%')):h('div',{class:'mini'},(((WEATHER[d.city]||[]).find(x=>x[0]===wxKey(wxIso(d),d.city)))||(WEATHER[d.city]||[[0,'']])[0])[1].split('.')[0]));
   const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('div',{class:'row sp'},h('h1',null,'Plan'),h('button',{class:'btn sm ghost',onclick:()=>go('more','print')},'Print'))),modeSeg(),strip,head];
   (d.bookings||[]).forEach(b=>out.push(h('div',{class:'booked'},h('b',null,/still to book|pay on arrival/.test(b)?'To book':'Booked'),b)));
+  if(S.planView==='map'){
+    out.push(...dayMapView(d));
+    out.push(h('div',{class:'row sp',style:'margin-top:4px'},
+      h('button',{class:'btn ghost sm',disabled:idx===0,onclick:()=>{S.selDay=S.days[idx-1].id;save();render();window.scrollTo({top:0})}},'← Previous day'),
+      h('button',{class:'btn ghost sm',disabled:idx===S.days.length-1,onclick:()=>{S.selDay=S.days[idx+1].id;save();render();window.scrollTo({top:0})}},'Next day →')));
+    setTimeout(()=>{const c=document.getElementById('chip'+S.selDay);if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'})},0);
+    return out;
+  }
   out.push(h('div',{class:'seg',role:'group','aria-label':'Day sections'},PT.map(([id,l])=>h('button',{'aria-pressed':(S.planTab||'stops')===id?'true':'false',onclick:()=>{S.planTab=id;save();render()}},l))));
   const tab=S.planTab||'stops',g=GO[d.iso],inf=INFO[d.iso];
   if(tab==='stops'){
@@ -2206,8 +2215,41 @@ function dayItems(d){
   return S.pitems[d.iso];
 }
 function modeSeg(){
-  return h('div',{class:'seg',role:'group','aria-label':'Plan order',style:'margin-bottom:12px'},
-    [['photo','Photo-timed order'],['original','Original plan']].map(([id,l])=>h('button',{'aria-pressed':(photoMode()?'photo':'original')===id?'true':'false',onclick:()=>{S.planMode=id;save();render()}},l)));
+  const v=S.planView==='map'?'map':'plan';
+  return h('div',{class:'seg',role:'group','aria-label':'Plan view',style:'margin-bottom:12px'},
+    [['plan','Day plan'],['map','Map for the day']].map(([id,l])=>h('button',{'aria-pressed':v===id?'true':'false',onclick:()=>{S.planView=id;save();render()}},l)));
+}
+function dayPlaces(d){
+  const seen=new Set(),out=[];
+  dayItems(d).forEach(it=>{const n=placeName(d,it);if(n&&!seen.has(n)){seen.add(n);out.push({it,n})}});
+  return out;
+}
+function dayMapView(d){
+  const pts=dayPlaces(d),areas=AREAS[d.iso]||[],out=[];
+  const card=h('div',{class:'card'},h('h3',null,'Map for the day'));
+  if(areas.length){
+    const frame=h('iframe',{title:'Map of '+areas[0][0],loading:'lazy',style:'width:100%;height:300px;border:0;border-radius:14px;margin-top:8px',referrerpolicy:'no-referrer'});
+    const setArea=a=>{const la=a[1],lo=a[2],dx=0.045,dy=0.03;frame.src='https://www.openstreetmap.org/export/embed.html?bbox='+(lo-dx)+'%2C'+(la-dy)+'%2C'+(lo+dx)+'%2C'+(la+dy)+'&layer=mapnik&marker='+la+'%2C'+lo;frame.title='Map of '+a[0]};
+    if(areas.length>1)card.append(h('div',{class:'chips',style:'margin-top:8px'},areas.map((a,k)=>h('button',{class:'chip'+(k===0?' on':''),onclick:e=>{setArea(a);[...e.target.parentNode.children].forEach(c=>c.classList.remove('on'));e.target.classList.add('on')}},a[0]))));
+    setArea(areas[0]);card.append(frame);
+    card.append(h('p',{class:'muted',style:'margin:6px 0 0'},'The embedded map needs internet and is not available in the offline copy. Use the buttons below to open the route in your map app.'));
+  }
+  // one Google Maps route through the day's places, in order, split in chunks (Maps takes about 10 stops per link)
+  const city=cityName(d.city),routes=[];
+  for(let k=0;k<pts.length;k+=8){const part=pts.slice(Math.max(0,k-(k?1:0)),k+8);if(part.length>1)routes.push(part)}
+  if(routes.length){
+    const links=h('div',{class:'chips',style:'margin-top:10px'});
+    routes.forEach((part,k)=>links.append(h('a',{class:'btn sm',href:'https://www.google.com/maps/dir/'+part.map(x=>encodeURIComponent(x.n+' '+city)).join('/'),target:'_blank',rel:'noopener'},routes.length>1?'Open route, part '+(k+1):'Open the whole route in Google Maps')));
+    card.append(links);
+  }
+  out.push(card);
+  const list=h('div',{class:'card'},h('div',{class:'sec'},'Stops in order'));
+  if(!pts.length)list.append(h('p',{class:'muted',style:'margin:0'},'No places to map today.'));
+  pts.forEach((x,k)=>list.append(h('div',{class:'st'},h('div',{class:'ck on',style:'pointer-events:none;font-size:12px;display:flex;align-items:center;justify-content:center'},String(k+1)),
+    h('div',{class:'stb'},x.it.time?h('div',{class:'stt'},x.it.time):null,h('div',null,x.it.text.split(/[,:(]/)[0]+' ',aLink(mapUrl(x.n,d.city),'Map'),' ',walkLink(x.n,d.city),' ',transitLink(d,x.it))))));
+  out.push(list);
+  out.push(offlineMapCard(d));
+  return out;
 }
 function photoBanner(d,pp){
   const card=h('div',{class:'heads'},h('b',null,'Reordered for photography '),pp.why);
