@@ -1182,6 +1182,7 @@ function renderPlan2(){
   out.push(h('div',{class:'row sp',style:'margin-top:4px'},
     h('button',{class:'btn ghost sm',disabled:idx===0,onclick:()=>{S.selDay=S.days[idx-1].id;save();render();window.scrollTo({top:0})}},'← Previous day'),
     h('button',{class:'btn ghost sm',disabled:idx===S.days.length-1,onclick:()=>{S.selDay=S.days[idx+1].id;save();render();window.scrollTo({top:0})}},'Next day →')));
+  out.push(skippedCard());
   setTimeout(()=>{const c=document.getElementById('chip'+S.selDay);if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'})},0);
   return out;
 }
@@ -1328,6 +1329,27 @@ function stampPanel(day,extra){
   const ph=STAMP_PHRASE[day.city];
   if(ph)card.append(h('div',{class:'heads',style:'margin:10px 0 0'},h('b',null,'Ask '),h('span',{style:'font-family:var(--han)'},ph[0]),h('div',{class:'muted'},ph[1])),
     h('p',{class:'muted',style:'margin:8px 0 0'},'Tip: carry a small notebook or card to stamp.'));
+  return card;
+}
+// ---------- possible but not added, and skipped places (your plan is not changed) ----------
+const IDEA_ONLY=[['Hong Kong Observation Wheel','2026-12-29','Fits between The Henderson and Harbour City, next to Central Pier. Listed as an idea only; add it yourself if you want it.']];
+const SKIPPED=[
+ ['Pier-2 Art Center','Kaohsiung','It is in Kaohsiung, not Taipei, and is not on your Taipei, Taichung and Taitung route. Kaohsiung is about 1.5 to 2 hours each way from Taipei by high-speed rail.','Needs its own day trip.'],
+ ['Lotus Pond','Kaohsiung','Also in Kaohsiung (Zuoying), so the same reason applies.','Could share the same Kaohsiung day trip as Pier-2.'],
+ ['Sun Moon Lake','Nantou, central Taiwan','It does not fit cleanly between Taipei, Taichung and Taitung. It would add about a full extra travel day.','Only if you add a day to the trip.']
+];
+function skippedCard(){
+  const card=h('div',{class:'card'},h('h3',null,'Possible ideas and skipped places'),
+    h('p',{class:'muted',style:'margin:2px 0 6px'},'Your plan is unchanged. These are places from your list that are not in it.'));
+  card.append(h('div',{class:'sec',style:'margin-top:8px'},'Possible, not added'));
+  IDEA_ONLY.forEach(([n,iso,why])=>{
+    const day=S.days.find(x=>x.iso===iso);
+    card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),day?h('div',{class:'muted'},dayInfo(day).n+' · '+day.date):null),
+      h('div',{class:'xa'},aLink(mapUrl(n,day?day.city:'Hong Kong'),'Map'),day?h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;S.planTab='stops';save();render();window.scrollTo({top:0})}},'Open day'):null)));
+  });
+  card.append(h('div',{class:'sec',style:'margin-top:12px'},'Skipped'));
+  SKIPPED.forEach(([n,where,why,what])=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n+' · '+where),h('div',{class:'muted'},why),h('div',{class:'muted'},what)),
+    h('div',{class:'xa'},aLink(mapUrl(n,'Taiwan'),'Map')))));
   return card;
 }
 // ---------- weather panel and nearby ideas ----------
