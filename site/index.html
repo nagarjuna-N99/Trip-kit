@@ -239,6 +239,34 @@ details.g[open]>summary::before{content:"▾"}
   .hd{padding-top:6px}
   .tips{grid-template-columns:1fr 1fr}
 }
+
+/* print layout: only the printable itinerary shows when printing */
+#printRoot{display:none}
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{background:#fff!important;background-image:none!important;color:#000!important}
+  body{padding:0!important;margin:0!important;font:11px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif}
+  body::before{display:none!important}
+  .layout,.toast{display:none!important}
+  #printRoot{display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pr-head{border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  .pr-head h1{font:700 20px system-ui,sans-serif;margin:0}
+  .pr-sub{font-size:11px;color:#333;margin-top:2px}
+  .pr-day{break-inside:avoid;page-break-inside:avoid;border-left:5px solid #777;padding:4px 0 4px 10px;margin:0 0 10px}
+  .pr-Taiwan{border-left-color:#0a8f6e}.pr-HongKong{border-left-color:#2457d6}.pr-Macau{border-left-color:#c26400}
+  .pr-day h2{font:700 13px system-ui,sans-serif;margin:0}
+  .pr-title{font-weight:600;margin:1px 0 4px}
+  .pr-t{border-collapse:collapse;width:100%;min-width:0;font-size:11px}
+  .pr-t td{border-top:1px solid #ddd;padding:2px 4px;vertical-align:top}
+  .pr-t tr:first-child td{border-top:0}
+  .pr-time{width:78px;white-space:nowrap;font-variant-numeric:tabular-nums;color:#222}
+  .pr-bk,.pr-note,.pr-go{font-size:10.5px;margin-top:4px;color:#222}
+  .pr-go ul{margin:2px 0 0;padding-left:16px}
+  .pr-page{break-before:page;page-break-before:always}
+  .pr-h3{font:700 14px system-ui,sans-serif;margin:0 0 6px}
+  .pr-tbl{border-collapse:collapse;width:100%;min-width:0;font-size:11px}
+  .pr-tbl th,.pr-tbl td{border:1px solid #bbb;padding:3px 5px;text-align:left}
+}
 </style>
 
 <style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -251,6 +279,7 @@ details.g[open]>summary::before{content:"▾"}
 </div>
 <aside class="aside" id="aside" aria-label="Weather and nearby places"></aside>
 </div>
+<div id="printRoot"></div>
 
 <script>
 window.__PUBLIC__=true;
@@ -1017,6 +1046,7 @@ const ICON={
   map:'<path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/>',
   check:'<path d="M5 12l5 5 9-10"/>',
   cloud:'<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.500-1A4.500 4.500 0 0 1 17 18z"/>',
+  printer:'<path d="M7 9V4h10v5M6 17H4v-6h16v6h-2M7 14h10v6H7z"/>',
   camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.500"/>',
   refresh:'<path d="M20 11a8 8 0 0 0-14-4M4 5v4h4M4 13a8 8 0 0 0 14 4M20 19v-4h-4"/>'
 };
@@ -1138,7 +1168,7 @@ function renderPlan2(){
     h('h2',{class:'dt'},d.title),
     h('div',{class:'mini'},dayInfo(d).date),
     a?h('div',{class:'mini'},Math.round(a.w.tmin)+'–'+Math.round(a.w.tmax)+'°C · rain '+(a.w.pop==null?'?':a.w.pop+'%')):h('div',{class:'mini'},(((WEATHER[d.city]||[]).find(x=>x[0]===wxKey(wxIso(d),d.city)))||(WEATHER[d.city]||[[0,'']])[0])[1].split('.')[0]));
-  const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('h1',null,'Plan')),modeSeg(),strip,head];
+  const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('div',{class:'row sp'},h('h1',null,'Plan'),h('button',{class:'btn sm ghost',onclick:()=>go('more','print')},'Print'))),modeSeg(),strip,head];
   (d.bookings||[]).forEach(b=>out.push(h('div',{class:'booked'},h('b',null,/still to book|pay on arrival/.test(b)?'To book':'Booked'),b)));
   out.push(h('div',{class:'seg',role:'group','aria-label':'Day sections'},PT.map(([id,l])=>h('button',{'aria-pressed':(S.planTab||'stops')===id?'true':'false',onclick:()=>{S.planTab=id;save();render()}},l))));
   const tab=S.planTab||'stops',g=GO[d.iso],inf=INFO[d.iso];
@@ -1255,6 +1285,86 @@ function renderMoney2(){
   out.push(set);
   return out;
 }
+
+// ---------- print the itinerary ----------
+const printOpts=()=>{S.print=S.print||{};const o=S.print;return {mode:o.mode||(photoMode()?'photo':'original'),go:o.go!==false,bookings:o.bookings!==false&&BOOKINGS.length>0,notes:o.notes!==false,details:!!o.details}};
+function itemsFor(d,mode){const sv=S.planMode;S.planMode=mode;const r=dayItems(d);S.planMode=sv;return r}
+function printDays(o){return S.days.map(d=>({d,di:dayInfo(d),items:itemsFor(d,o.mode)}))}
+function buildPrint(o){
+  const root=document.getElementById('printRoot');if(!root)return;
+  const nodes=[h('div',{class:'pr-head'},h('h1',null,'Taiwan · Hong Kong · Macau'),
+    h('div',{class:'pr-sub'},fdate(TRIP_START)+' to '+fdate(TRIP_END)+' · '+(o.mode==='photo'?'Photo-timed order':'Original plan')+' · printed '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})))];
+  printDays(o).forEach(({d,di,items})=>{
+    const pp=o.mode==='photo'&&PHOTO_PLAN[d.iso];
+    const blk=h('section',{class:'pr-day pr-'+cls(d.city)},h('h2',null,di.n+' · '+d.date+' · '+d.city),h('div',{class:'pr-title'},d.title));
+    if(o.bookings)(d.bookings||[]).forEach(b=>blk.append(h('div',{class:'pr-bk'},'Booked: '+b)));
+    blk.append(h('table',{class:'pr-t'},items.map(it=>h('tr',null,h('td',{class:'pr-time'},it.time||''),h('td',null,'☐  '+it.text)))));
+    if(pp)blk.append(h('div',{class:'pr-note'},'Reordered for photography: '+pp.why));
+    if(d.heads)blk.append(h('div',{class:'pr-note'},'Heads up: '+d.heads));
+    if(d.note)blk.append(h('div',{class:'pr-note'},d.note));
+    if(o.go&&GO[d.iso])blk.append(h('div',{class:'pr-go'},h('b',null,'Getting there'),h('ul',null,GO[d.iso].go.map(l=>h('li',null,l[0]+' ('+l[1]+', '+l[2]+')'+(l[4]?' - ticket needed':''))))));
+    if(o.notes&&d.myNote)blk.append(h('div',{class:'pr-note'},'My notes: '+d.myNote));
+    nodes.push(blk);
+  });
+  const last=h('div',{class:'pr-page'},h('div',{class:'pr-h3'},'Bookings and essentials'));
+  if(o.bookings){
+    const total=BOOKINGS.reduce((a,b)=>a+b[3],0);
+    last.append(h('table',{class:'pr-tbl'},h('tr',null,h('th',null,'Dates'),h('th',null,'Booking'),h('th',null,'Reference'),h('th',null,'INR')),
+      BOOKINGS.map(b=>h('tr',null,h('td',null,b[0]),h('td',null,b[1]),h('td',null,b[2]||''),h('td',null,fmt(b[3])))),
+      h('tr',null,h('td'),h('td',null,'Total confirmed'),h('td'),h('td',null,fmt(total)))));
+  }
+  const todo=S.todo.filter(t=>!t[1]);
+  if(todo.length)last.append(h('div',{class:'pr-note',style:'margin-top:8px'},h('b',null,'Still to do')),h('ul',{style:'margin:2px 0 0;padding-left:16px'},todo.map(t=>h('li',null,'☐  '+t[0]))));
+  last.append(h('div',{class:'pr-note',style:'margin-top:8px'},h('b',null,'Emergency numbers: '),'Taiwan 110 police, 119 ambulance and fire (112 from a mobile). Hong Kong 999. Macau 999.'));
+  if(o.details&&S.info){const l=[['Passport','passport'],['Insurance','insurance'],['Emergency contact','contact'],['Consulates','consulate']].filter(x=>S.info[x[1]]);
+    if(l.length)last.append(h('div',{class:'pr-note',style:'margin-top:8px'},h('b',null,'My details')),l.map(x=>h('div',{class:'pr-note'},x[0]+': '+S.info[x[1]])))}
+  nodes.push(last);
+  root.replaceChildren(...nodes);
+}
+function printText(o){
+  const L=['TAIWAN · HONG KONG · MACAU',fdate(TRIP_START)+' to '+fdate(TRIP_END)+' · '+(o.mode==='photo'?'Photo-timed order':'Original plan'),''];
+  printDays(o).forEach(({d,di,items})=>{
+    L.push(di.n.toUpperCase()+' · '+d.date+' · '+d.city+' · '+d.title);
+    if(o.bookings)(d.bookings||[]).forEach(b=>L.push('  Booked: '+b));
+    items.forEach(it=>L.push('  '+(it.time?it.time.padEnd(14):'')+'[ ] '+it.text));
+    if(d.heads)L.push('  Heads up: '+d.heads);
+    if(o.go&&GO[d.iso])GO[d.iso].go.forEach(l=>L.push('  > '+l[0]+' ('+l[1]+', '+l[2]+')'+(l[4]?' - ticket needed':'')));
+    if(o.notes&&d.myNote)L.push('  My notes: '+d.myNote);
+    L.push('');
+  });
+  L.push('Emergency: Taiwan 110 / 119 (112 mobile), Hong Kong 999, Macau 999');
+  return L.join('\n');
+}
+function doPrint(){
+  const o=printOpts();buildPrint(o);
+  if(!window.__PUBLIC__){toast('Printing is not available on this preview page. Open the hosted app to print.');return}
+  setTimeout(()=>{try{window.print()}catch(e){toast('Printing is blocked here. Use Copy as text.')}},60);
+}
+addEventListener('afterprint',()=>{const r=document.getElementById('printRoot');if(r)r.replaceChildren()});
+function renderPrint(){
+  const o=printOpts(),sv=()=>{save();render()};
+  const out=[];
+  out.push(h('p',{class:'muted'},'Print your whole itinerary on A4, or save it as a PDF from the print window. Tick what to include.'));
+  const card=h('div',{class:'card'});
+  card.append(h('div',{class:'sec'},'Which order'),h('div',{class:'seg',role:'group','aria-label':'Order to print',style:'margin-bottom:12px'},
+    [['photo','Photo-timed order'],['original','Original plan']].map(([id,l])=>h('button',{'aria-pressed':o.mode===id?'true':'false',onclick:()=>{S.print=S.print||{};S.print.mode=id;sv()}},l))));
+  const chk=(key,label,on,disabled,hint)=>h('label',{style:'display:flex;gap:10px;align-items:flex-start;padding:8px 0;'+(disabled?'opacity:.55':'')},
+    h('input',{type:'checkbox',style:'width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto',checked:on,disabled:!!disabled,onchange:e=>{S.print=S.print||{};S.print[key]=e.target.checked;save()}}),
+    h('span',null,label,hint?h('div',{class:'muted'},hint):null));
+  card.append(h('div',{class:'sec'},'Include'),
+    chk('go','Getting there notes for each day',o.go),
+    chk('bookings','Bookings page and booking lines',o.bookings,BOOKINGS.length===0,BOOKINGS.length===0?'Import your trip details first (More, Show a driver) to include bookings.':null),
+    chk('notes','My notes for each day',o.notes),
+    chk('details','My details (passport, insurance, contacts)',o.details,false,'Off by default. Only print this on paper you will keep safe.'));
+  out.push(card);
+  const ta=h('textarea',{class:'daynote',id:'prText',rows:'10',readonly:true,hidden:true,'aria-label':'Itinerary as text'});
+  out.push(h('div',{class:'card'},
+    h('div',{class:'row'},h('button',{class:'btn',onclick:doPrint},'Print or save as PDF'),
+      h('button',{class:'btn ghost',onclick:()=>{const t=printText(printOpts());copyText(t,x=>{ta.hidden=false;ta.value=x;ta.focus();ta.select()})}},'Copy as text')),
+    window.__PUBLIC__?h('p',{class:'muted',style:'margin:10px 0 0'},'In the print window, choose Save as PDF if you want a file. Works best on a computer.'):h('p',{class:'muted',style:'margin:10px 0 0'},'Printing works in the hosted app. This preview page can only copy the text.'),ta));
+  out.push(h('p',{class:'muted'},printDays(o).length+' days, '+printDays(o).reduce((a,x)=>a+x.items.length,0)+' stops. About 7 to 9 pages on A4.'));
+  return out;
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1266,6 +1376,7 @@ const TILES=[
   ['pass','Cards and apps','card','Octopus, EasyCard, links'],
   ['share','Share summary','send','Text for family'],
   ['notes','Notes','pencil','Anything you jot down'],
+  ['print','Print itinerary','printer','Print or save as PDF'],
   ['photo','Photo spots','camera','Best light for each spot'],
   ['setup','Setup','gear','Offline, live data, import']
 ];
@@ -1296,7 +1407,7 @@ function renderSetup(){
     h('button',{class:'btn sm',onclick:()=>go('more','cheat')},'Open the import box')));
   return out;
 }
-const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],setup:['Setup',renderSetup]};
+const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],setup:['Setup',renderSetup]};
 function renderSub(id){
   const s=SUBS[id];if(!s)return renderMore();
   let body=s[1]();
