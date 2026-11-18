@@ -1046,7 +1046,7 @@ const curDay=()=>{const t=today();return S.days.find(d=>t>=d.iso&&t<=(d.iso2||d.
 const wxIso=d=>d.iso2&&d.city==='Taiwan'?d.iso2:d.iso;
 function toggleItem(it){it.done=!it.done;save();render()}
 function nextItem(day,live){
-  const open=day.items.filter(i=>!i.done);
+  const open=dayItems(day).filter(i=>!i.done);
   if(!live)return open[0]||null;
   const n=new Date(),nm=n.getHours()*60+n.getMinutes();
   return open.find(i=>{const m=/^(\d{1,2}):(\d{2})/.exec(i.time||'');return m&&(+m[1]*60+ +m[2])>=nm-15})||open[0]||null;
@@ -1113,8 +1113,8 @@ function renderToday(){
   if(day){
     out.push(forecastPanel(day));
     const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open')));
-    day.items.slice(0,6).forEach(it=>card.append(stopRow(day,it)));
-    if(day.items.length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(day.items.length-6)+' more on the Plan tab'));
+    dayItems(day).slice(0,6).forEach(it=>card.append(stopRow(day,it)));
+    if(dayItems(day).length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(dayItems(day).length-6)+' more on the Plan tab'));
     out.push(card);
   }
   out.push(h('p',{class:'muted',id:'liveStat',style:'text-align:center;margin:8px 0'}));
@@ -1138,22 +1138,24 @@ function renderPlan2(){
     h('h2',{class:'dt'},d.title),
     h('div',{class:'mini'},dayInfo(d).date),
     a?h('div',{class:'mini'},Math.round(a.w.tmin)+'–'+Math.round(a.w.tmax)+'°C · rain '+(a.w.pop==null?'?':a.w.pop+'%')):h('div',{class:'mini'},(((WEATHER[d.city]||[]).find(x=>x[0]===wxKey(wxIso(d),d.city)))||(WEATHER[d.city]||[[0,'']])[0])[1].split('.')[0]));
-  const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('h1',null,'Plan')),strip,head];
+  const out=[h('div',{class:'hd',style:'padding-bottom:6px'},h('h1',null,'Plan')),modeSeg(),strip,head];
   (d.bookings||[]).forEach(b=>out.push(h('div',{class:'booked'},h('b',null,/still to book|pay on arrival/.test(b)?'To book':'Booked'),b)));
   out.push(h('div',{class:'seg',role:'group','aria-label':'Day sections'},PT.map(([id,l])=>h('button',{'aria-pressed':(S.planTab||'stops')===id?'true':'false',onclick:()=>{S.planTab=id;save();render()}},l))));
   const tab=S.planTab||'stops',g=GO[d.iso],inf=INFO[d.iso];
   if(tab==='stops'){
+    {const pp=photoMode()&&PHOTO_PLAN[d.iso];if(pp)out.push(photoBanner(d,pp))}
     adviceHeads(d).forEach(n=>out.push(n));
     const card=h('div',{class:'card'});
-    if(!d.items.length)card.append(h('p',{class:'muted',style:'margin:0'},'No stops yet. Add one below.'));
-    d.items.forEach((it,ii)=>{
+    const its=dayItems(d);
+    if(!its.length)card.append(h('p',{class:'muted',style:'margin:0'},'No stops yet. Add one below.'));
+    its.forEach((it,ii)=>{
       const row=stopRow(d,it);
-      row.append(h('button',{class:'x','aria-label':'Delete stop',onclick:()=>{d.items.splice(ii,1);save();render()}},'×'));
+      row.append(h('button',{class:'x','aria-label':'Delete stop',onclick:()=>{its.splice(ii,1);save();render()}},'×'));
       card.append(row);
     });
     const tm=h('input',{type:'text',id:'t'+d.id,placeholder:'Time',maxlength:'14','aria-label':'Time'});tm.style.flex='0 0 96px';
     const x=h('input',{type:'text',id:'x'+d.id,placeholder:'Add a stop','aria-label':'New stop'});
-    const add=()=>{if(!x.value.trim())return;d.items.push({id:uid(),time:tm.value.trim(),text:x.value.trim(),done:false});save();render()};
+    const add=()=>{if(!x.value.trim())return;its.push({id:uid(),time:tm.value.trim(),text:x.value.trim(),done:false});save();render()};
     x.addEventListener('keydown',e=>{if(e.key==='Enter')add()});
     card.append(h('div',{class:'row',style:'margin-top:12px'},tm,x,h('button',{class:'btn sm',onclick:add},'Add')));
     out.push(card);
@@ -1163,6 +1165,7 @@ function renderPlan2(){
     out.push(stampPanel(d,'m-only'));
     out.push(photoPanel(d,'m-only'));
   }else if(tab==='go'){
+    {const pp=photoMode()&&PHOTO_PLAN[d.iso];if(pp)out.push(h('div',{class:'heads'},h('b',null,'Photo-timed order '),pp.go||'The travel notes below still apply to the photo-timed order.'))}
     if(!g)out.push(h('div',{class:'card'},h('p',{class:'muted',style:'margin:0'},'No travel notes for this day.')));
     else g.go.forEach(l=>{const m=l[0].split(' → ');
       out.push(h('div',{class:'card leg2'},h('div',{class:'row sp'},h('b',null,l[0]),h('span',{class:'tg '+(l[4]?'need':'free')},l[4]?'Ticket':'No ticket')),
@@ -1334,6 +1337,43 @@ function stampPanel(day,extra){
     h('p',{class:'muted',style:'margin:8px 0 0'},'Tip: carry a small notebook or card to stamp.'));
   return card;
 }
+// ---------- photo-timed order: a second version of some days, your original plan is kept ----------
+const PHOTO_PLAN={
+ '2026-12-18':{why:'Taipei sunset is about 17:05, so the Elephant Mountain hike now starts at 15:45 and you are on the platforms by 16:30, instead of starting at 14:30 and reaching the summit at 18:00.',
+  items:[['10:00','Taipei 101 observatory'],['12:30','Lunch in Xinyi shopping district'],['15:45','Xiangshan (Elephant Mountain) hike, aim to reach the platforms by 16:30'],['16:30','Golden hour at the summit viewpoint, sunset about 17:05'],['17:45','Dinner nearby']]},
+ '2026-12-27':{why:'Senado Square is quietest early in the morning, and the Ruins of St. Paul\'s look best around golden hour (about 16:45 to 17:30). This adds one extra trip between the old town and Cotai, and leaves the late morning free.',
+  go:'Extra trip: after the Venetian and Parisian, take a free shuttle or taxi back to the old town for the Ruins at 16:45, then return to Cotai for City of Dreams.',
+  items:[['08:30','Senado Square, mosaic pavement before the crowds'],['12:30','Lunch: Portuguese egg tarts, local Macanese food'],['14:30','The Venetian / The Parisian: canals, gondola rides, casino floor'],['16:15','Head back to the old town'],['16:45','Ruins of St. Paul\'s at golden hour'],['18:45','City of Dreams'],['20:30','House of Dancing Water show (if booked) or dinner at Cotai Strip']]},
+ '2026-12-29':{why:'Going up the Peak at 17:15 catches the sunset (about 17:45) and the blue hour from the Sky Terrace, then you walk Lugard Road once it is dark.',
+  items:[['11:00','PMQ Staunton'],['13:00','The Henderson (photo stop)'],['14:30','Harbour City, Tsim Sha Tsui, shopping'],['16:30','Head to the Peak Tram terminus'],['17:15','Peak Tram up to Victoria Peak, Sky Terrace for dusk'],['19:30','Lugard Road night walk (a tripod helps), then dinner']]},
+ '2026-12-30':{why:'The Symphony of Lights starts at 20:00, so Temple Street moves earlier and you reach the Avenue of Stars by 19:45 to get a good spot.',
+  items:[['10:00','Apliu Street Flea Market, Sham Shui Po'],['14:00','Ladies\' Market, Tung Choi Street'],['16:00','Sneakers Street, Fa Yuen Street'],['17:30','Temple Street Night Market, early dinner'],['19:45','Avenue of Stars: Symphony of Lights over Victoria Harbour (show starts at 20:00)']]},
+ '2027-01-01':{why:'Sunset is about 17:55, so you reach the Stanley waterfront by 17:15 instead of 18:00. The coastal bus leaves a little earlier to match.',
+  items:[['10:00','Ocean Park'],['16:00','Scenic coastal bus via Repulse Bay for golden-hour views'],['17:15','Stanley Market and waterfront, sunset about 17:55, then dinner']]},
+ '2027-01-02':{why:'Tai O is best in soft morning light, so you go there first, then up to Ngong Ping, and ride the cable car down. This reverses the order of your original day. Decide whether to buy a one-way or return cable car ticket.',
+  go:'Photo-timed order: bus 11 from Tung Chung to Tai O, bus 21 from Tai O up to Ngong Ping, then the Ngong Ping 360 cable car down to Tung Chung. The legs below are listed in your original order.',
+  items:[['08:00','Bus 11 from Tung Chung to Tai O (about 40 minutes)'],['09:00','Tai O fishing village, boat ride in soft morning light'],['11:15','Bus 21 from Tai O up to Ngong Ping (about 40 minutes)'],['12:30','Tian Tan Buddha and Po Lin Monastery'],['14:30','Ngong Ping 360 cable car down (book the Crystal Cabin in advance)'],['17:00','Citygate Outlets on the way back']]},
+ '2027-01-03':{why:'Choi Hung is quieter early, and Kennedy Town moves to 16:45 so you can walk on to Sai Wan for the 17:30 sunset.',
+  items:[['08:30','Choi Hung Estate, rainbow court with fewer people'],['16:45','Kennedy Town Basketball Court, the tram-through-the-net shot'],['17:30','Sai Wan Swimming Shed, sunset at the Instagram Pier'],['20:00','Last Hong Kong dinner, pack']]}
+};
+const photoMode=()=>S.planMode!=='original';
+function dayItems(d){
+  const pp=PHOTO_PLAN[d.iso];
+  if(!pp||!photoMode())return d.items;
+  S.pitems=S.pitems||{};
+  if(!S.pitems[d.iso])S.pitems[d.iso]=pp.items.map(i=>({id:uid(),time:i[0],text:i[1],done:false}));
+  return S.pitems[d.iso];
+}
+function modeSeg(){
+  return h('div',{class:'seg',role:'group','aria-label':'Plan order',style:'margin-bottom:12px'},
+    [['photo','Photo-timed order'],['original','Original plan']].map(([id,l])=>h('button',{'aria-pressed':(photoMode()?'photo':'original')===id?'true':'false',onclick:()=>{S.planMode=id;save();render()}},l)));
+}
+function photoBanner(d,pp){
+  const card=h('div',{class:'heads'},h('b',null,'Reordered for photography '),pp.why);
+  card.append(h('details',{class:'g',style:'margin-top:8px'},h('summary',null,'What your original plan had'),
+    h('div',{style:'padding:6px 14px 12px'},d.items.map(it=>h('div',{class:'muted',style:'padding:2px 0'},(it.time?it.time+'  ':'')+it.text)))));
+  return card;
+}
 // ---------- possible but not added, and skipped places (your plan is not changed) ----------
 const IDEA_ONLY=[['Hong Kong Observation Wheel','2026-12-29','Fits between The Henderson and Harbour City, next to Central Pier. Listed as an idea only; add it yourself if you want it.']];
 const SKIPPED=[
@@ -1386,7 +1426,7 @@ function photoRow(sp,withDay){
   const flag=note&&!/^Matches/.test(note);
   const acts=[aLink(mapUrl(n,city==='Taiwan'?'Taiwan':city),'Map')];
   if(withDay&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>openDay(iso)},'Open day'));
-  if(!inPlan&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>{day.items.push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add'));
+  if(!inPlan&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add'));
   return h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n),h('div',null,best),h('div',{class:'muted'},why),
     withDay&&day?h('div',{class:'muted'},dayInfo(day).n+' · '+day.date):null,
     note?h('div',{style:flag?'color:var(--warn);font-size:13px;margin-top:4px':'font-size:13px;color:var(--muted);margin-top:4px'},(flag?'Note: ':'')+note):null,
@@ -1476,7 +1516,7 @@ function extraPanel(day,extra){
   const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Nearby, not on your plan'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Ideas close to where you are on '+day.date+'. Tap Add to put one on your stops.'));
   l.forEach(([n,why,how])=>card.append(h('div',{class:'xp'},
     h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
-    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),h('button',{class:'btn sm ghost',onclick:()=>{day.items.push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
+    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
   return card;
 }
 function foodPanel(day,extra){
