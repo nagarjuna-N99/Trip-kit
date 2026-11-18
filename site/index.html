@@ -1146,6 +1146,7 @@ function renderToday(){
     h('h1',null,live&&day?day.title:toGo>0?'Almost time':'Welcome home')));
   const sc=setupCard();if(sc)out.push(sc);
   out.push(clockCard());
+  {const nc=nearCard();if(nc)out.push(nc)}
   if(toGo>0&&day){
     out.push(h('div',{class:'hero g-Taiwan'},h('span',{class:'pill'},'Trip countdown'),h('div',{class:'hero-k'},'Leaving in'),h('div',{class:'big'},toGo),
       h('div',{class:'hero-t'},toGo===1?'day':'days'),h('div',{class:'hero-s'},'First flight on '+fdate(TRIP_START))));
@@ -1810,6 +1811,106 @@ function transitLink(d,it){
   const its=dayItems(d),i=its.indexOf(it),prev=i>0?its[i-1]:null,origin=prev?placeName(d,prev):null;
   return h('a',{class:'maplink',href:transitUrl(origin,dest,d.city),target:'_blank',rel:'noopener',title:'Bus, train and MRT routes from the previous stop'},'Transit');
 }
+
+// ---------- nearby alerts: places around you, only while the app is open ----------
+// Browsers cannot track location or send alerts in the background without a server, so this works while the app is open on screen.
+// Your exact position stays on the phone. To find places the app sends your position rounded to about 100 m to Wikipedia, nothing else, and saves nothing.
+const NEAR={on:false,wid:null,last:null,lastQ:null,lastQT:0,res:[],err:'',busy:false,seen:{},wake:null,at:0};
+function distM(a,b){const R=6371000,r=Math.PI/180,dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r;const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+const round3=x=>Math.round(x*1000)/1000;
+function ownNames(){const n=[];S.days.forEach(d=>dayItems(d).forEach(i=>n.push(i.text)));Object.values(EXTRA).forEach(l=>l.forEach(e=>n.push(e[0])));return n}
+function onList(title){
+  const t=toks(title);if(!t.length)return false;
+  return ownNames().some(n=>{const nt=new Set(toks(n));return t.filter(w=>nt.has(w)).length>=Math.min(2,t.length)});
+}
+async function geoQuery(pos){
+  const j=await getJson('https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord='+round3(pos.lat)+'%7C'+round3(pos.lon)+'&gsradius=800&gslimit=15&format=json&origin=*');
+  return ((j.query&&j.query.geosearch)||[]).map(g=>({title:g.title,dist:Math.round(g.dist),lat:g.lat,lon:g.lon}));
+}
+const fmtDist=m=>m<1000?m+' m':(m/1000).toFixed(1)+' km';
+const walkMin=m=>Math.max(1,Math.round(m/80));
+async function showNote(title,body){
+  toast(title+' · '+body);
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  try{
+    const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
+    if(reg&&reg.showNotification)await reg.showNotification(title,{body,tag:'near-'+title,icon:'icon-192.png'});
+    else new Notification(title,{body});
+  }catch(e){try{new Notification(title,{body})}catch(_){}}
+}
+function notifyNear(){
+  if(!S.nearNotify)return;
+  const now=Date.now();
+  NEAR.res.filter(r=>r.dist<=300&&(!NEAR.seen[r.title]||now-NEAR.seen[r.title]>6*3600e3)).slice(0,2).forEach(r=>{
+    NEAR.seen[r.title]=now;showNote('Near you: '+r.title,fmtDist(r.dist)+' away, about '+walkMin(r.dist)+' min walk'+(r.mine?' · on your plan or ideas':''));
+  });
+}
+async function onPos(pos){
+  NEAR.last=pos;NEAR.at=Date.now();
+  const moved=!NEAR.lastQ||distM(NEAR.lastQ,pos)>=150,due=Date.now()-NEAR.lastQT>=10*60*1000;
+  if((!moved&&!due)||NEAR.busy){safeRender();return}
+  if(navigator.onLine===false){NEAR.err='You are offline. Nearby places need internet.';safeRender();return}
+  NEAR.busy=true;
+  try{const res=await geoQuery(pos);if(!NEAR.on){NEAR.busy=false;return}NEAR.res=res.map(r=>Object.assign(r,{mine:onList(r.title)}));NEAR.lastQ=pos;NEAR.lastQT=Date.now();NEAR.err='';notifyNear()}
+  catch(e){NEAR.err='Could not load nearby places. Try again in a minute.'}
+  NEAR.busy=false;if(NEAR.on)safeRender();
+}
+async function holdScreen(){try{if(S.nearWake&&NEAR.on&&'wakeLock' in navigator&&!NEAR.wake){NEAR.wake=await navigator.wakeLock.request('screen');NEAR.wake.addEventListener('release',()=>{NEAR.wake=null})}}catch(e){}}
+function nearStart(){
+  if(!window.__PUBLIC__){NEAR.err='Nearby alerts work in the hosted app, not on this preview page.';render();return}
+  if(!navigator.geolocation){NEAR.err='This browser cannot share your location.';render();return}
+  NEAR.on=true;NEAR.err='';
+  NEAR.wid=navigator.geolocation.watchPosition(pp=>onPos({lat:pp.coords.latitude,lon:pp.coords.longitude,acc:pp.coords.accuracy}),
+    e=>{
+      if(e.code===1){NEAR.err='Location permission was denied. Allow it in your browser settings, then try again.';NEAR.on=false;NEAR.wid=null;render();return}
+      NEAR.err='Waiting for a location fix. Check that location is on, or go outdoors. It keeps trying.';safeRender();   // a passing error, keep watching
+    },
+    {enableHighAccuracy:false,maximumAge:60000,timeout:30000});
+  holdScreen();render();
+}
+function nearStop(){
+  try{if(NEAR.wid!=null)navigator.geolocation.clearWatch(NEAR.wid)}catch(e){}
+  NEAR.wid=null;NEAR.on=false;NEAR.last=null;NEAR.lastQ=null;NEAR.res=[];NEAR.seen={};
+  try{if(NEAR.wake)NEAR.wake.release()}catch(e){}NEAR.wake=null;render();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')holdScreen()});
+function nearPlaces(limit){
+  const l=NEAR.res.slice(0,limit||8);
+  return l.map(r=>h('div',{class:'xp'},thumbQ(r.title,r.title,56),
+    h('div',{class:'xb'},h('b',null,r.title),h('div',{class:'muted'},fmtDist(r.dist)+' · about '+walkMin(r.dist)+' min walk'),r.mine?h('span',{class:'tg free',style:'display:inline-block;margin-top:4px'},'On your plan or ideas'):null),
+    h('div',{class:'xa'},aLink('https://www.google.com/maps/search/?api=1&query='+r.lat+','+r.lon,'Map'),aLink('https://www.google.com/maps/dir/?api=1&travelmode=walking&destination='+r.lat+','+r.lon,'Walk'))));
+}
+function nearCard(){
+  if(!NEAR.on)return null;
+  const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,'Near you now'),h('button',{class:'btn sm ghost',onclick:()=>go('more','near')},'Open')));
+  if(NEAR.res.length)nearPlaces(3).forEach(x=>card.append(x));
+  else card.append(h('p',{class:'muted',style:'margin:6px 0 0'},NEAR.err||'Finding your position...'));
+  return card;
+}
+function renderNear(){
+  const out=[];
+  out.push(h('div',{class:'heads',style:'margin:0 0 12px'},h('b',null,'Works only while this app is open on your screen. '),'A web app cannot follow you in the background or send alerts when it is closed.'));
+  out.push(h('div',{class:'card'},h('h3',{style:'margin-bottom:4px'},'Privacy'),
+    h('p',{class:'muted',style:'margin:0'},'Your exact position stays on your phone and is not saved. To find places, the app sends your position rounded to about 100 m to Wikipedia, with no name or account. Turn it off any time.')));
+  const perm=('Notification' in window)?Notification.permission:'unsupported';
+  const ctl=h('div',{class:'card'});
+  ctl.append(h('div',{class:'row'},NEAR.on?h('button',{class:'btn',onclick:nearStop},'Stop nearby alerts'):h('button',{class:'btn',onclick:nearStart},'Start nearby alerts'),
+    NEAR.on?h('span',{class:'muted'},NEAR.busy?'Looking up places...':'On'+(NEAR.at?' · updated '+ago(NEAR.at):'')):null));
+  const chk=(label,on,fn,hint)=>h('label',{style:'display:flex;gap:10px;align-items:flex-start;padding:10px 0'},h('input',{type:'checkbox',style:'width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto',checked:on,onchange:e=>fn(e.target.checked)}),h('span',null,label,hint?h('div',{class:'muted'},hint):null));
+  ctl.append(chk('Alert me about places within 300 m',!!S.nearNotify,v=>{S.nearNotify=v;save();render()},'Shows a message in the app, and a phone notification if you allow them below.'));
+  ctl.append(chk('Keep the screen on while tracking',!!S.nearWake,v=>{S.nearWake=v;save();if(v)holdScreen();else{try{if(NEAR.wake)NEAR.wake.release()}catch(e){}}},'Helps because tracking pauses when the screen turns off. Uses more battery.'));
+  if(perm==='default')ctl.append(h('button',{class:'btn sm ghost',onclick:async()=>{try{await Notification.requestPermission()}catch(e){}render()}},'Allow phone notifications'));
+  else ctl.append(h('p',{class:'muted',style:'margin:6px 0 0'},perm==='granted'?'Phone notifications are allowed.':perm==='denied'?'Phone notifications are blocked in your browser settings. You will still see messages inside the app.':'This browser does not support notifications. You will still see messages inside the app.'));
+  if(NEAR.err)ctl.append(h('p',{style:'margin:8px 0 0;color:var(--danger)'},NEAR.err));
+  out.push(ctl);
+  const list=h('div',{class:'card'},h('h3',{style:'margin-bottom:4px'},'Places near you'));
+  if(!NEAR.on)list.append(h('p',{class:'muted',style:'margin:6px 0 0'},'Start nearby alerts to see places around you.'));
+  else if(!NEAR.res.length)list.append(h('p',{class:'muted',style:'margin:6px 0 0'},NEAR.last?'No places found within 800 m.':'Finding your position...'));
+  else nearPlaces(10).forEach(x=>list.append(x));
+  out.push(list);
+  out.push(h('p',{class:'muted'},'Places come from Wikipedia, so small shops and restaurants may not appear. Tap a thumbnail for more photos.'));
+  return out;
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1823,6 +1924,7 @@ const TILES=[
   ['notes','Notes','pencil','Anything you jot down'],
   ['tickets','Tickets to book','tag','Status and opening dates'],
   ['sos','SOS card','alert','Address, numbers, help phrases'],
+  ['near','Nearby alerts','map','Places around you, with alerts'],
   ['offmap','Offline maps','map','Download once, use with no signal'],
   ['print','Print itinerary','printer','Print or save as PDF'],
   ['photo','Photo spots','camera','Best light for each spot'],
@@ -1855,7 +1957,7 @@ function renderSetup(){
     h('button',{class:'btn sm',onclick:()=>go('more','cheat')},'Open the import box')));
   return out;
 }
-const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],offmap:['Offline maps',renderOfflineMaps],tickets:['Tickets to book',renderTickets],sos:['SOS card',renderSos],setup:['Setup',renderSetup]};
+const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],offmap:['Offline maps',renderOfflineMaps],near:['Nearby alerts',renderNear],tickets:['Tickets to book',renderTickets],sos:['SOS card',renderSos],setup:['Setup',renderSetup]};
 function renderSub(id){
   const s=SUBS[id];if(!s)return renderMore();
   let body=s[1]();

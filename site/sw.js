@@ -1,6 +1,6 @@
 // Service worker: keeps the app and its fonts available offline.
 // Bump CACHE when index.html changes so phones pick up the new version.
-const CACHE = 'trip-kit-v22';
+const CACHE = 'trip-kit-v23';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -22,4 +22,13 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(req, c)); return r; })));
+});
+
+// Tapping a nearby-place notification opens or focuses the app.
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    for (const c of cs) { if ('focus' in c) return c.focus(); }
+    return self.clients.openWindow('./');
+  }));
 });
