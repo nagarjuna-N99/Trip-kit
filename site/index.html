@@ -400,7 +400,7 @@ const GO={
  ['Taipei Main Station → Yingge','TRA local train (platform signs say "Local" or Taoyuan-bound)','About 30–35 min','About NT$30 with an EasyCard',0],
  ['Yingge Station → Ceramics Old Street','Walk','About 10–15 min','Free',0],
  ['Old Street → New Taipei City Art Museum','Walk or taxi','About 15 min on foot','Check ticket prices at the museum',0],
- ['Yingge → Longshan Temple','TRA back to Taipei Main, then MRT Blue line one stop to Longshan Temple','About 45 min total','About NT$35 total with an EasyCard',0],
+ ['Yingge → Longshan Temple','TRA back to Taipei Main, then MRT Blue line two stops (via Ximen) to Longshan Temple','About 45 min total','About NT$35 total with an EasyCard',0],
  ['Longshan Temple → Bopiliao → Huaxi Street','Walk','Bopiliao 3 min, Huaxi Street about 10 min','Free',0]],
  near:['Sanxia Old Street (about 15 min by bus from Yingge)','Yingge Ceramics Museum','Guangzhou Street Night Market (next to Longshan Temple)','Taipei Qingshan Temple at Wanhua']},
 '2026-12-21':{go:[
@@ -862,7 +862,7 @@ function renderInfo(){
   out.push(h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'Emergency numbers'),
     h('ul',{style:'margin:0;padding-left:18px'},h('li',null,'Taiwan: 110 police, 119 ambulance and fire (112 from a mobile)'),h('li',null,'Hong Kong: 999'),h('li',null,'Macau: 999'),h('li',null,'Your embassy or consulate: add the number below from the official website'))));
   const my=h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'My details (kept only in this browser)'));
-  [['passport','Passport number'],['insurance','Insurance policy and helpline'],['contact','Emergency contact'],['consulate','Indian mission numbers in Taipei, Hong Kong and Macau']].forEach(([k,l])=>{
+  [['passport','Passport number'],['insurance','Insurance policy and helpline'],['contact','Emergency contact'],['consulate','Indian mission numbers in Taipei, Hong Kong and Macau'],['medical','Medical notes: blood group, allergies, medicines']].forEach(([k,l])=>{
     const ta=h('textarea',{class:'daynote',id:'my'+k,rows:'2',placeholder:l,'aria-label':l});ta.value=S.info[k]||'';
     ta.addEventListener('input',()=>{S.info[k]=ta.value;save()});my.append(h('label',{class:'muted',style:'display:block;margin:8px 0 3px'},l),ta);
   });
@@ -942,6 +942,7 @@ function renderPack(){
   const out=[h('h2',null,'Packing')];
   let n=0,t=0;Object.values(S.pack).forEach(l=>l.forEach(i=>{t++;if(i[1])n++}));
   out.push(h('div',{class:'bar','aria-hidden':'true'},h('i',{style:'width:'+(t?n/t*100:0)+'%'})),h('p',{class:'muted'},n+' of '+t+' packed'));
+  out.push(packCard());
   Object.entries(S.pack).forEach(([g,list])=>{
     const card=h('div',{class:'card'},h('p',{class:'group-title'},g));
     list.forEach((it,i)=>card.append(h('div',{class:'item'+(it[1]?' done':''),style:i===0?'border-top:0':''},
@@ -1020,7 +1021,7 @@ async function gz(data,mode){
 }
 async function exportPriv(){
   const dayBookings={};S.days.forEach(d=>{if(d.bookings&&d.bookings.length)dayBookings[d.iso]=d.bookings});
-  const json=JSON.stringify({v:2,bookings:BOOKINGS,lodging:LODGING,dayBookings,days:S.days,budget:S.budget,notes:S.notes||'',todo:S.todo,addr:S.addr||{},info:S.info||{}});
+  const json=JSON.stringify({v:2,bookings:BOOKINGS,lodging:LODGING,dayBookings,days:S.days,budget:S.budget,notes:S.notes||'',todo:S.todo,addr:S.addr||{},info:S.info||{},tix:S.tix||{}});
   try{if(window.CompressionStream)return 'TK1:'+b64(await gz(json,'c'))}catch(e){}
   return json;
 }
@@ -1039,6 +1040,7 @@ async function importPriv(text){
   if(typeof p.notes==='string'&&p.notes&&!S.notes){S.notes=p.notes;const nt=document.getElementById('noteText');if(nt)nt.value=S.notes}
   if(Array.isArray(p.todo))S.todo=p.todo;
   S.addr=Object.assign(S.addr||{},p.addr||{});S.info=Object.assign(S.info||{},p.info||{});
+  if(p.tix)S.tix=Object.assign(S.tix||{},p.tix);
   applyPriv();applyAdded();save();render();
 }
 // ---------- interface: four places (Today, Plan, Money, More) ----------
@@ -1064,6 +1066,8 @@ const ICON={
   check:'<path d="M5 12l5 5 9-10"/>',
   cloud:'<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.500-1A4.500 4.500 0 0 1 17 18z"/>',
   printer:'<path d="M7 9V4h10v5M6 17H4v-6h16v6h-2M7 14h10v6H7z"/>',
+  tag:'<path d="M3 12l9-9h8v8l-9 9z"/><circle cx="16" cy="8" r="1.200"/>',
+  alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
   camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.500"/>',
   refresh:'<path d="M20 11a8 8 0 0 0-14-4M4 5v4h4M4 13a8 8 0 0 0 14 4M20 19v-4h-4"/>'
 };
@@ -1093,7 +1097,7 @@ const curDay=()=>{const t=today();return S.days.find(d=>t>=d.iso&&t<=(d.iso2||d.
 const wxIso=d=>d.iso2&&d.city==='Taiwan'?d.iso2:d.iso;
 function toggleItem(it){it.done=!it.done;save();render()}
 function nextItem(day,live){
-  const open=dayItems(day).filter(i=>!i.done);
+  const open=visibleItems(day).filter(i=>!i.done);
   if(!live)return open[0]||null;
   const n=new Date(),nm=n.getHours()*60+n.getMinutes();
   return open.find(i=>{const m=/^(\d{1,2}):(\d{2})/.exec(i.time||'');return m&&(+m[1]*60+ +m[2])>=nm-15})||open[0]||null;
@@ -1102,7 +1106,7 @@ function btnLink(href,txt){return h('a',{class:'btn sm',href,target:'_blank',rel
 function stopRow(day,it){
   return h('div',{class:'st'+(it.done?' done':'')},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),legFor(day,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'How to go: '),howFor(day,it)):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -1141,6 +1145,7 @@ function renderToday(){
   out.push(h('div',{class:'hd'},h('div',{class:'kick'},live&&day?dayInfo(day).n+' · '+day.date+' · '+day.city:'Your trip'),
     h('h1',null,live&&day?day.title:toGo>0?'Almost time':'Welcome home')));
   const sc=setupCard();if(sc)out.push(sc);
+  out.push(clockCard());
   if(toGo>0&&day){
     out.push(h('div',{class:'hero g-Taiwan'},h('span',{class:'pill'},'Trip countdown'),h('div',{class:'hero-k'},'Leaving in'),h('div',{class:'big'},toGo),
       h('div',{class:'hero-t'},toGo===1?'day':'days'),h('div',{class:'hero-s'},'First flight on '+fdate(TRIP_START))));
@@ -1157,12 +1162,14 @@ function renderToday(){
   out.push(h('div',{class:'qa'},[['Show driver','car',()=>go('more','cheat')],['Add spend','money',()=>go('money')],['Notes','pencil',()=>go('more','notes')],['Full day','plan',()=>{if(day)S.selDay=day.id;go('plan')}]]
     .map(([l,ic,fn])=>h('button',{class:'qb',onclick:fn},h('span',{class:'qi'},icon(ic,22)),l))));
   if(toGo>0)out.push(dueCard(3));
+  {const tn=ticketNudge();if(tn)out.push(tn)}
   if(day){
     out.push(forecastPanel(day));
     out.push(offlineMapCard(day));
-    const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open')));
-    dayItems(day).slice(0,6).forEach(it=>card.append(stopRow(day,it)));
-    if(dayItems(day).length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(dayItems(day).length-6)+' more on the Plan tab'));
+    const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,live?'Today\'s plan':'Day 1 plan'),h('div',{class:'row'},h('button',{class:'btn sm'+(lightOn(day)?'':' ghost'),'aria-pressed':lightOn(day)?'true':'false',onclick:()=>toggleLight(day)},lightOn(day)?'Easy day: on':'Take it easy'),h('button',{class:'btn sm ghost',onclick:()=>{S.selDay=day.id;go('plan')}},'Open'))));
+    visibleItems(day).slice(0,6).forEach(it=>card.append(stopRow(day,it)));
+    if(visibleItems(day).length>6)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'+ '+(visibleItems(day).length-6)+' more on the Plan tab'));
+    if(optionalItems(day).length)card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'Easy day is on. '+optionalItems(day).length+' optional stops are hidden.'));
     out.push(card);
   }
   out.push(h('p',{class:'muted',id:'liveStat',style:'text-align:center;margin:8px 0'}));
@@ -1191,16 +1198,19 @@ function renderPlan2(){
   out.push(h('div',{class:'seg',role:'group','aria-label':'Day sections'},PT.map(([id,l])=>h('button',{'aria-pressed':(S.planTab||'stops')===id?'true':'false',onclick:()=>{S.planTab=id;save();render()}},l))));
   const tab=S.planTab||'stops',g=GO[d.iso],inf=INFO[d.iso];
   if(tab==='stops'){
+    out.push(lightBar(d));
     {const pp=photoMode()&&PHOTO_PLAN[d.iso];if(pp)out.push(photoBanner(d,pp))}
     adviceHeads(d).forEach(n=>out.push(n));
     const card=h('div',{class:'card'});
     const its=dayItems(d);
     if(!its.length)card.append(h('p',{class:'muted',style:'margin:0'},'No stops yet. Add one below.'));
     its.forEach((it,ii)=>{
+      if(lightOn(d)&&isOptional(d,it))return;
       const row=stopRow(d,it);
       row.append(h('button',{class:'x','aria-label':'Delete stop',onclick:()=>{its.splice(ii,1);save();render()}},'×'));
       card.append(row);
     });
+    {const opt=optionalItems(d);if(opt.length)card.append(h('details',{class:'g',style:'margin-top:8px'},h('summary',null,'Optional today ('+opt.length+')'),h('div',{style:'padding:4px 14px 10px'},opt.map(it=>stopRow(d,it)))))}
     const tm=h('input',{type:'text',id:'t'+d.id,placeholder:'Time',maxlength:'14','aria-label':'Time'});tm.style.flex='0 0 96px';
     const x=h('input',{type:'text',id:'x'+d.id,placeholder:'Add a stop','aria-label':'New stop'});
     const add=()=>{if(!x.value.trim())return;its.push({id:uid(),time:tm.value.trim(),text:x.value.trim(),done:false});save();render()};
@@ -1318,7 +1328,7 @@ function buildPrint(o){
     const pp=o.mode==='photo'&&PHOTO_PLAN[d.iso];
     const blk=h('section',{class:'pr-day pr-'+cls(d.city)},h('h2',null,di.n+' · '+d.date+' · '+d.city),h('div',{class:'pr-title'},d.title));
     if(o.bookings)(d.bookings||[]).forEach(b=>blk.append(h('div',{class:'pr-bk'},'Booked: '+b)));
-    blk.append(h('table',{class:'pr-t'},items.map(it=>h('tr',null,h('td',{class:'pr-time'},it.time||''),h('td',null,'☐  '+it.text,legFor(d,it)?h('div',{style:'font-size:10px;color:#444'},legFor(d,it)):null)))));
+    blk.append(h('table',{class:'pr-t'},items.map(it=>h('tr',null,h('td',{class:'pr-time'},it.time||''),h('td',null,'☐  '+it.text,howFor(d,it)?h('div',{style:'font-size:10px;color:#333'},'How to go: '+howFor(d,it)):null,legFor(d,it)&&!(howFor(d,it)&&/^Not a walk/.test(legFor(d,it)))?h('div',{style:'font-size:10px;color:#444'},legFor(d,it)):null)))));
     if(pp)blk.append(h('div',{class:'pr-note'},'Reordered for photography: '+pp.why));
     if(d.heads)blk.append(h('div',{class:'pr-note'},'Heads up: '+d.heads));
     if(d.note)blk.append(h('div',{class:'pr-note'},d.note));
@@ -1346,7 +1356,7 @@ function printText(o){
   printDays(o).forEach(({d,di,items})=>{
     L.push(di.n.toUpperCase()+' · '+d.date+' · '+d.city+' · '+d.title);
     if(o.bookings)(d.bookings||[]).forEach(b=>L.push('  Booked: '+b));
-    items.forEach(it=>{L.push('  '+(it.time?it.time.padEnd(14):'')+'[ ] '+it.text);const lg=legFor(d,it);if(lg)L.push('                  ('+lg+')')});
+    items.forEach(it=>{L.push('  '+(it.time?it.time.padEnd(14):'')+'[ ] '+it.text);const hw=howFor(d,it);if(hw)L.push('                  How to go: '+hw);const lg=legFor(d,it);if(lg&&!(hw&&/^Not a walk/.test(lg)))L.push('                  ('+lg+')')});
     if(d.heads)L.push('  Heads up: '+d.heads);
     if(o.go&&GO[d.iso])GO[d.iso].go.forEach(l=>L.push('  > '+l[0]+' ('+l[1]+', '+l[2]+')'+(l[4]?' - ticket needed':'')));
     if(o.notes&&d.myNote)L.push('  My notes: '+d.myNote);
@@ -1461,7 +1471,7 @@ const LEGS={
  '2026-12-16':[[/Check in/i,'Walk about 8 min from Taipei Main Station (about 550 m)'],[/evening walk|Ximending/i,'Walk about 15 min from Taipei Main Station to Ximending']],
  '2026-12-18':[[/observatory/i,'Not a walk: MRT about 20 min, then a short walk inside Taipei 101'],[/Lunch/i,'Walk about 5–10 min from Taipei 101'],[/Xiangshan|Elephant Mountain/i,'MRT about 10 min from Taipei 101, then about 20–30 min uphill on stone steps'],[/Golden hour|Summit/i,'About 20–30 min uphill walk from the trailhead']],
  '2026-12-19':[[/THSR\/TRA/i,'Walk about 8 min from your Taipei stay to Taipei Main Station'],[/Rainbow Village/i,'Not a walk: taxi about 25 min from Taichung HSR'],[/Miyahara/i,'Not a walk: taxi or bus about 25–30 min from Rainbow Village'],[/Taichung Park|Calligraphy/i,'Walk about 20 min from Miyahara to Taichung Park'],[/Fengjia/i,'Not a walk: taxi or bus about 20–30 min']],
- '2026-12-20':[[/TRA to Yingge/i,'Walk about 8 min from your Taipei stay to the station, then a train of about 30 min'],[/Yingge Historic|Ceramics Street/i,'Walk about 10–15 min from Yingge Station'],[/Art Museum/i,'Walk about 15 min from the Old Street, or a short taxi'],[/Longshan/i,'MRT one stop from Taipei Main. Longshan Temple to Bopiliao is about a 5 min walk'],[/Huaxi/i,'Walk about 10 min from Longshan Temple']],
+ '2026-12-20':[[/TRA to Yingge/i,'Walk about 8 min from your Taipei stay to the station, then a train of about 30 min'],[/Yingge Historic|Ceramics Street/i,'Walk about 10–15 min from Yingge Station'],[/Art Museum/i,'Walk about 15 min from the Old Street, or a short taxi'],[/Longshan/i,'Longshan Temple to Bopiliao is about a 5 min walk'],[/Huaxi/i,'Walk about 10 min from Longshan Temple']],
  '2026-12-21':[[/National Palace Museum/i,'Not a walk: MRT to Shilin, then a bus of about 15 min'],[/Shilin Night Market/i,'Walk about 5 min from Jiantan MRT']],
  '2026-12-22':[[/Seaside|Liyu/i,'Not a walk: bike or taxi, about 5 km']],
  '2026-12-23':[[/Check in, rent/i,'Walk about 5–10 min from the harbour, or ask your hostel for a pickup'],[/Scooter loop/i,'Not a walk: about 20 km ring road by scooter'],[/Zhaori/i,'Scooter about 10 min from the village']],
@@ -1472,7 +1482,7 @@ const LEGS={
  '2026-12-30':[[/Sneakers|Fa Yuen/i,'Walk about 10 min from Ladies\' Market'],[/Temple Street/i,'MTR to Jordan, then walk about 10–12 min'],[/Avenue of Stars/i,'MTR to Tsim Sha Tsui, then walk about 10 min']],
  '2026-12-31':[[/Wong Tai Sin/i,'MTR exit B2 is right at the temple, about 2 min'],[/Chi Lin|Nan Lian/i,'MTR one stop to Diamond Hill, then about 5 min on foot']],
  '2027-01-01':[[/Stanley/i,'Stanley Market to the waterfront is about a 5 min walk']],
- '2027-01-02':[[/Tian Tan|Po Lin/i,'Walk about 10 min from Ngong Ping Village, then 268 steps up'],[/Tai O/i,'Walk about 10 min from the bus stop to the stilt houses'],[/Citygate/i,'Walk about 5 min from Tung Chung station']],
+ '2027-01-02':[[/^Bus \d+/i,null],[/Tian Tan|Po Lin/i,'Walk about 10 min from Ngong Ping Village, then 268 steps up'],[/Tai O/i,'Walk about 10 min from the bus stop to the stilt houses'],[/Citygate/i,'Walk about 5 min from Tung Chung station']],
  '2027-01-03':[[/Kennedy Town Basketball/i,'Walk about 10 min from Kennedy Town station'],[/Sai Wan/i,'Walk about 15 min from Kennedy Town station']]
 };
 function legFor(d,it){const l=LEGS[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m?m[1]:null}
@@ -1574,6 +1584,232 @@ function foodPanel(day,extra){
   });
   return card;
 }
+
+// =====================================================================
+// Five helpers: easy days, tickets, weather packing, SOS card, India clock
+// =====================================================================
+// ---------- take it easy: show only the must-do stops, the rest become optional ----------
+const LIGHT_OPT={
+ '2026-12-16':[/Dadaocheng/i,/evening walk|Ximending/i],
+ '2026-12-18':[/Xiangshan|Elephant Mountain/i,/Golden hour|Summit/i],
+ '2026-12-19':[/Taichung Park|Calligraphy/i,/Fengjia/i],
+ '2026-12-20':[/Art Museum/i,/Longshan|Bopiliao/i],
+ '2026-12-21':[/Wistaria/i],
+ '2026-12-22':[/Seaside|Liyu/i],
+ '2026-12-23':[/Scooter loop/i],
+ '2026-12-24':[/Optional sunrise/i],
+ '2026-12-25':[/Yangmingshan/i],
+ '2026-12-26':[/Grand Lisboa|casino floor/i],
+ '2026-12-27':[/Lou Lim/i,/Rua da Felicidade/i,/City of Dreams/i,/House of Dancing/i],
+ '2026-12-28':[/Pak Tai/i,/Blue House/i,/Hopewell|Times Square|SOGO/i],
+ '2026-12-29':[/PMQ/i,/Observation Wheel/i,/Harbour City/i,/Lugard/i],
+ '2026-12-30':[/Apliu/i,/Sneakers|Fa Yuen/i],
+ '2026-12-31':[/M\+/i],
+ '2027-01-01':[/Ocean Park/i],
+ '2027-01-02':[/Tai O/i,/Citygate/i],
+ '2027-01-03':[/Choi Hung/i,/Kennedy Town/i]
+};
+const lightOn=d=>!!(S.light&&S.light[d.id]);
+function isOptional(d,it){const l=LIGHT_OPT[d.iso];return !!(l&&l.some(re=>re.test(it.text)))}
+function visibleItems(d){const its=dayItems(d);return lightOn(d)?its.filter(i=>!isOptional(d,i)):its}
+function optionalItems(d){return lightOn(d)?dayItems(d).filter(i=>isOptional(d,i)):[]}
+function toggleLight(d){S.light=S.light||{};S.light[d.id]=!lightOn(d);save();render()}
+function lightBar(d){
+  const on=lightOn(d),n=(LIGHT_OPT[d.iso]||[]).length?dayItems(d).filter(i=>isOptional(d,i)).length:0;
+  return h('div',{class:'card',style:'display:flex;gap:12px;align-items:center;justify-content:space-between'},
+    h('div',null,h('b',null,on?'Easy day is on':'Tired or short of time?'),h('div',{class:'muted'},on?'Showing only the must-do stops. '+n+' optional stops are listed below.':'Tap to show only the must-do stops and move the rest to Optional.')),
+    h('button',{class:'btn sm'+(on?'':' ghost'),'aria-pressed':on?'true':'false',onclick:()=>toggleLight(d)},on?'Turn off':'Take it easy'));
+}
+
+// ---------- tickets to book ----------
+const TICKETS=[
+ ['thsr','High Speed Rail, Taipei to Taichung and back','2026-12-19','2026-11-21','Book on the T-EX app or at a counter. Choose reserved or non-reserved coach.','About NT$700 each way'],
+ ['taipei101','Taipei 101 observatory (optional)','2026-12-18',null,'Timed ticket. Book online to skip the queue.','About NT$600'],
+ ['npm','National Palace Museum','2026-12-21',null,'Buy at the museum or online.','About NT$350'],
+ ['puyuma','Puyuma Express, Taipei to Taitung','2026-12-22','2026-11-24','Reserved seat only. Book on the TRA site, the TRA app or a 7-Eleven kiosk. Carry your passport to collect it.','About NT$780'],
+ ['ferryout','Green Island ferry, out (Fugang to Green Island)','2026-12-23',null,'Your plan says pay on arrival. Bring your passport. Check the sea forecast the evening before, because winter sailings are often cancelled.','About NT$500–550'],
+ ['ferryback','Green Island ferry, back','2026-12-24',null,'Book when you arrive on the island.','About NT$500–550'],
+ ['trainback','Train, Taitung to Taipei','2026-12-24','2026-11-26','Same booking rules as the Puyuma. Pick a train that leaves well after the ferry lands, in case of sea delays.','About NT$780'],
+ ['hzmb','HZMB shuttle bus, Hong Kong to Macau and back','2026-12-26',null,'Pay on the day at the bus counter, on Dec 26 and again on Dec 28.','About HK$ 65 each way'],
+ ['hodw','House of Dancing Water (optional)','2026-12-27',null,'Book ahead if you want to go. It sells out around holidays.','From about MOP 500'],
+ ['peak','Peak Tram and Sky Terrace combo','2026-12-29',null,'Book online to skip the queue.','About HK$ 120+'],
+ ['mplus','M+ Museum timed entry','2026-12-31',null,'Book online. New Year\'s Eve is busy.','About HK$ 130–150'],
+ ['oceanpark','Ocean Park','2027-01-01',null,'Online tickets are usually cheaper. It is a public holiday, so expect crowds.','About HK$ 500–600'],
+ ['crystal','Ngong Ping 360 Crystal Cabin','2027-01-02',null,'Book in advance. Cable cars can close for wind or maintenance. Decide whether you need a one-way or a return ticket.','About HK$ 345 return'],
+ ['airportexpress','Airport Express to the airport','2027-01-04',null,'Pay with Octopus on the day, or ask your airline about in-town check-in.','About HK$ 115']
+];
+const TIX_STATES=[['todo','To book'],['booked','Booked'],['na','Not needed']];
+const tixState=id=>((S.tix||{})[id]||{}).s||'todo';
+function tixOpens(t){
+  if(!t[3])return null;const dd=dayDiff(today(),t[3]);
+  return dd>0?'Opens '+fdate(t[3])+', in '+dd+(dd===1?' day':' days'):dd===0?'Opens today':'Open since '+fdate(t[3]);
+}
+function ticketNudge(){
+  const todo=TICKETS.filter(t=>tixState(t[0])==='todo'&&t[3]&&dayDiff(today(),t[3])<=14&&dayDiff(today(),t[2])>=0);
+  if(!todo.length)return null;
+  const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,'Tickets to book soon'),h('button',{class:'btn sm ghost',onclick:()=>go('more','tickets')},'Open')));
+  todo.slice(0,3).forEach(t=>card.append(h('div',{class:'st'},h('div',{class:'stb'},h('div',{class:'stt'},tixOpens(t)),h('div',null,t[1])))));
+  return card;
+}
+function renderTickets(){
+  S.tix=S.tix||{};
+  const left=TICKETS.filter(t=>tixState(t[0])==='todo').length,booked=TICKETS.filter(t=>tixState(t[0])==='booked').length;
+  const out=[h('p',{class:'muted'},left+' to book, '+booked+' booked. Mark each one as you go. Opening dates come from the 28-day booking rule where it applies.')];
+  TICKETS.slice().sort((a,b)=>a[2].localeCompare(b[2])).forEach(t=>{
+    const st=tixState(t[0]),rec=S.tix[t[0]]=S.tix[t[0]]||{s:'todo',ref:''};
+    const day=S.days.find(d=>t[2]>=d.iso&&t[2]<=(d.iso2||d.iso));
+    const opens=tixOpens(t);
+    const card=h('div',{class:'card',style:st==='na'?'opacity:.6':''},
+      h('div',{class:'row sp'},h('b',null,t[1]),st==='booked'?h('span',{class:'tg free'},'Booked'):st==='todo'?h('span',{class:'tg need'},'To book'):null),
+      h('div',{class:'muted',style:'margin-top:2px'},(day?dayInfo(day).n+' · '+day.date:fdate(t[2]))+(opens?' · '+opens:'')),
+      h('p',{style:'margin:8px 0 4px'},t[4]),h('div',{class:'muted'},t[5]),
+      h('div',{class:'chips'},TIX_STATES.map(([v,l])=>h('button',{class:'chip'+(st===v?' on':''),'aria-pressed':st===v?'true':'false',onclick:()=>{rec.s=v;save();render()}},l))));
+    if(st==='booked'){
+      const ref=h('input',{type:'text',id:'tx'+t[0],placeholder:'Booking reference or note','aria-label':'Reference for '+t[1],value:rec.ref||''});
+      ref.addEventListener('input',()=>{rec.ref=ref.value;save()});card.append(ref);
+    }
+    out.push(card);
+  });
+  return out;
+}
+
+// ---------- packing suggestions from the weather ----------
+const SEASON={'Taipei':{lo:12,hi:19,rain:3},'Taitung':{lo:16,hi:24,rain:0},'Green Island':{lo:19,hi:24,rain:1,wind:1},'Macau':{lo:12,hi:19,rain:0},'Hong Kong':{lo:14,hi:19,rain:0}};
+function packStats(){
+  const by={};
+  tripDays().forEach(d=>{
+    const k=wxKey(d.iso,d.city),b=by[k]=by[k]||{days:0,lo:99,hi:-99,rain:0,gust:0,fc:0,hist:0};
+    b.days++;
+    const w=wxDay(d.iso,d.city),hs=LIVE.hist&&LIVE.hist[k]&&LIVE.hist[k][d.iso.slice(5)];
+    if(w){b.fc++;b.lo=Math.min(b.lo,w.tmin);b.hi=Math.max(b.hi,w.tmax);if(w.pop>=60)b.rain++;b.gust=Math.max(b.gust,w.gust||0)}
+    else if(hs){b.hist++;b.lo=Math.min(b.lo,hs.tmin);b.hi=Math.max(b.hi,hs.tmax);if(hs.rain>=1)b.rain++}
+  });
+  Object.entries(by).forEach(([k,b])=>{
+    if(b.fc+b.hist===0){const z=SEASON[k]||{lo:13,hi:20,rain:0};b.lo=z.lo;b.hi=z.hi;b.rain=z.rain;b.src='typical winter weather';if(z.wind)b.gust=55}
+    else b.src=b.fc?'live forecast for '+b.fc+' of '+b.days+' days'+(b.hist?', last year for the rest':''):'what the same dates were like last year';
+  });
+  return by;
+}
+function packAdvice(k,b){
+  const a=[];
+  if(b.rain>0)a.push('Umbrella and a light waterproof jacket');
+  if(b.lo<=9)a.push('Warm jacket');else if(b.lo<=13)a.push('A warm layer such as a fleece');
+  if(b.hi>=25)a.push('Light clothes and sun protection');
+  if(b.gust>=50||k==='Green Island')a.push('Windproof layer');
+  if(k==='Green Island')a.push('Swimsuit and quick-dry towel');
+  return a;
+}
+function packCard(){
+  const by=packStats(),all=[];
+  const card=h('div',{class:'card'},h('h3',null,'Suggested from the weather'),
+    h('p',{class:'muted',style:'margin:2px 0 6px'},'The live forecast opens about 16 days before each date. Until then this uses last year and typical winter weather.'));
+  Object.entries(by).forEach(([k,b])=>{
+    const adv=packAdvice(k,b);adv.forEach(x=>{if(!all.includes(x))all.push(x)});
+    card.append(h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,k+' · '+Math.round(b.lo)+'–'+Math.round(b.hi)+'°C'+(b.rain?' · rain on '+b.rain+(b.rain===1?' day':' days'):'')),
+      h('div',{class:'muted'},b.src),adv.length?h('div',null,adv.join(', ')):h('div',{class:'muted'},'Nothing special needed.'))));
+  });
+  const have=(S.pack['From the weather']||[]).map(i=>i[0]);
+  const fresh=all.filter(x=>!have.includes(x));
+  card.append(h('button',{class:'btn sm',style:'margin-top:10px',disabled:!fresh.length,onclick:()=>{S.pack['From the weather']=S.pack['From the weather']||[];fresh.forEach(x=>S.pack['From the weather'].push([x,0]));save();render();toast('Added to your list')}},
+    fresh.length?'Add '+fresh.length+' suggestion'+(fresh.length===1?'':'s')+' to my list':'All suggestions are on your list'));
+  return card;
+}
+
+// ---------- SOS card ----------
+const STAY_RANGES=[['2026-12-17','2026-12-26'],['2026-12-22','2026-12-23'],['2026-12-23','2026-12-24'],['2026-12-26','2026-12-28'],['2026-12-28','2027-01-04']];
+function stayToday(){
+  const t=today();let best=null;
+  STAY_RANGES.forEach((r,i)=>{if(t>=r[0]&&t<=r[1]&&LODGING[i]){const span=dayDiff(r[0],r[1]);if(!best||span<best.span)best={i,span}}});
+  return best?best.i:null;
+}
+function renderSos(){
+  S.info=S.info||{};S.addr=S.addr||{};
+  const day=curDay(),city=day?day.city:null;
+  const big=(t)=>h('div',{style:'font:700 22px/1.3 var(--display);overflow-wrap:anywhere'},t);
+  const out=[h('p',{class:'muted'},'Show this screen to a taxi driver, police officer or hospital. Large text on purpose.')];
+  const nums=h('div',{class:'card',style:'border:2px solid var(--danger)'},h('h3',{style:'color:var(--danger);margin-bottom:6px'},'Emergency numbers'));
+  [['Taiwan','110 police · 119 ambulance and fire · 112 from a mobile','Taiwan'],['Hong Kong','999','Hong Kong'],['Macau','999','Macau']].forEach(([n,v,c])=>
+    nums.append(h('div',{style:'padding:8px 0;border-top:1px solid var(--line)'},h('div',{class:'muted'},n+(city===c?' · you are here':'')),big(v))));
+  out.push(nums);
+  const cur=stayToday();
+  const stays=h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},cur!=null?'Where I am staying tonight':'Where I am staying'));
+  const list=cur!=null?[cur]:LODGING.map((x,i)=>i);
+  list.forEach(i=>{
+    const l=LODGING[i];if(!l)return;
+    const en=l[2]||S.addr[l[0]]||'',zh=l[3]||'';
+    stays.append(h('div',{style:'padding:8px 0;border-top:1px solid var(--line)'},h('b',null,l[0]),h('span',{class:'muted'},' · '+l[1]),
+      en?big(en):h('div',{class:'muted'},'Add the address under More, Show a driver.'),
+      zh?h('div',{style:'font:500 26px/1.4 var(--han);overflow-wrap:anywhere'},zh):null,
+      en?h('button',{class:'btn sm ghost',style:'margin-top:6px',onclick:()=>copyText(en+(zh?' '+zh:''))},'Copy address'):null));
+  });
+  out.push(stays);
+  const help=h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'Hold up for help'));
+  [['I need help','我需要幫助'],['Please call an ambulance','請叫救護車'],['Please call the police','請報警'],['Take me to a hospital','請帶我去醫院'],['I am lost, please take me here','我迷路了，請帶我去這裡']].forEach(([en,zh])=>
+    help.append(h('div',{style:'padding:8px 0;border-top:1px solid var(--line)'},h('div',{class:'muted'},en),h('div',{style:'font:500 30px/1.3 var(--han)'},zh))));
+  out.push(help);
+  const my=h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'My details'));
+  const rows=[['Emergency contact','contact'],['Medical notes','medical'],['Insurance','insurance'],['Passport','passport'],['Indian mission numbers','consulate']].filter(([,k])=>S.info[k]);
+  if(!rows.length)my.append(h('p',{class:'muted',style:'margin:0'},'Nothing added yet. Add your emergency contact, medical notes and insurance under More, Show a driver.'));
+  rows.forEach(([l,k])=>my.append(h('div',{style:'padding:8px 0;border-top:1px solid var(--line)'},h('div',{class:'muted'},l),h('div',{style:'font:600 19px/1.4 var(--body);white-space:pre-wrap;overflow-wrap:anywhere'},S.info[k]))));
+  my.append(h('button',{class:'btn sm ghost',style:'margin-top:8px',onclick:()=>go('more','cheat')},'Edit my details'));
+  out.push(my);
+  return out;
+}
+
+// ---------- India time clock ----------
+const TZ={'Taipei':'Asia/Taipei','Taitung':'Asia/Taipei','Green Island':'Asia/Taipei','Hong Kong':'Asia/Hong_Kong','Macau':'Asia/Macau'};
+function clockInfo(){
+  const day=curDay()||S.days[0],place=wxKey(wxIso(day),day.city),tz=TZ[place]||'Asia/Taipei';
+  const f=z=>new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:z}).format(new Date());
+  const inHour=+f('Asia/Kolkata').slice(0,2),inMin=+f('Asia/Kolkata').slice(3,5);
+  const ok=(inHour*60+inMin)>=480&&(inHour*60+inMin)<1320;
+  return {place:place==='Taitung'||place==='Green Island'?'Taiwan':place,here:f(tz),india:f('Asia/Kolkata'),hint:ok?'Good time to call India now.':'It is late in India. Better to send a message.'};
+}
+function updateClocks(){
+  const a=document.getElementById('clkHere'),b=document.getElementById('clkIn'),c=document.getElementById('clkHint');
+  if(!a)return;const ci=clockInfo();a.textContent=ci.here;b.textContent=ci.india;c.textContent=ci.hint;
+}
+function clockCard(){
+  const ci=clockInfo();
+  return h('div',{class:'card',style:'padding:14px 18px'},h('div',{class:'row sp'},
+    h('div',null,h('div',{class:'muted'},ci.place),h('div',{id:'clkHere',style:'font:700 26px var(--display);font-variant-numeric:tabular-nums'},ci.here)),
+    h('div',null,h('div',{class:'muted'},'India (2h 30m behind)'),h('div',{id:'clkIn',style:'font:700 26px var(--display);font-variant-numeric:tabular-nums'},ci.india)),
+    h('button',{class:'btn sm ghost',style:'color:var(--danger)',onclick:()=>go('more','sos')},'SOS')),
+    h('div',{id:'clkHint',class:'muted',style:'margin-top:6px'},ci.hint),
+    h('div',{class:'muted'},'Easy calling hours: about 10:30 to 00:30 here.'));
+}
+setInterval(updateClocks,20000);
+
+// ---------- how to go: which bus, train or MRT line to take between stops ----------
+// Lines and routes I am confident about. Where a bus number is not certain, the Transit link shows today's route.
+const HOW={
+ '2026-12-16':[[/Airport MRT|bus to Taipei Main/i,'Taoyuan Airport MRT (express train) to Taipei Main Station, about 35–40 min. Airport buses also run, check the app.'],[/Check in/i,'Walk from Taipei Main Station, about 8 min.'],[/Dadaocheng/i,'Walk about 20 min north from Taipei Main Station, or use the Transit link for MRT and bus options.'],[/evening walk|Ximending/i,'MRT Blue Line from Taipei Main Station, one stop to Ximen, then walk about 5 min.']],
+ '2026-12-18':[[/observatory/i,'MRT Red Line (Tamsui–Xinyi) from Taipei Main Station to Taipei 101/World Trade Center, about 15–20 min.'],[/Lunch/i,'Walk from Taipei 101, about 5–10 min.'],[/Xiangshan|Elephant Mountain/i,'MRT Red Line from Taipei 101/World Trade Center, one stop to Xiangshan, exit 2.']],
+ '2026-12-19':[[/THSR\/TRA/i,'Taiwan High Speed Rail (THSR) from Taipei Main Station to Taichung HSR station, about 50–60 min.'],[/Rainbow Village/i,'From Taichung HSR station, a city bus or taxi, about 25–40 min. The Transit link shows the bus number.'],[/Miyahara/i,'City bus or taxi from Rainbow Village, about 25–30 min.'],[/Taichung Park|Calligraphy/i,'Walk from Miyahara to Taichung Park, about 20 min. For the Calligraphy Greenway, take a taxi or city bus.'],[/Fengjia/i,'City bus or taxi from the Greenway, about 20–30 min.'],[/Train back/i,'Taxi to Taichung HSR station, then THSR back to Taipei, about 55 min. Check the last train.']],
+ '2026-12-20':[[/TRA to Yingge/i,'Taiwan Railway (TRA) local train from Taipei Main Station toward Taoyuan or Hsinchu, to Yingge, about 30–35 min.'],[/Yingge Historic|Ceramics Street/i,'Walk from Yingge Station, about 10–15 min.'],[/Art Museum/i,'Walk about 15 min from the Old Street, or a short taxi.'],[/Longshan/i,'TRA back to Taipei Main Station, then MRT Blue Line: Taipei Main to Ximen to Longshan Temple (2 stops).'],[/Huaxi/i,'Walk about 10 min from Longshan Temple.']],
+ '2026-12-21':[[/National Palace Museum/i,'MRT Red Line from Taipei Main Station to Shilin, about 20–25 min, then bus R30 (Red 30), 255 or 304 to the museum, about 15 min.'],[/Shilin Night Market/i,'Bus back to Shilin MRT, then walk. Jiantan station (Red Line, one stop before Shilin) is also close.']],
+ '2026-12-22':[[/Puyuma Express/i,'Puyuma Express (Taiwan Railway) from Taipei Main Station to Taitung, about 3.5–4 hours. Reserved seat only.'],[/Seaside|Liyu/i,'Taxi or a rented bike from the hostel, about 5 km.']],
+ '2026-12-23':[[/Ferry from Fugang/i,'Taxi to Fugang Harbour first, then the ferry, about 30–50 min.'],[/Check in, rent/i,'A short walk or a hostel pickup from the harbour.'],[/Zhaori/i,'Scooter or taxi from the village, about 10 min.']],
+ '2026-12-24':[[/Train from Taitung/i,'Taiwan Railway express (Puyuma or Tze-Chiang) from Taitung Station to Taipei Main Station, about 3.5–4.5 hours.']],
+ '2026-12-25':[[/Beitou Hot Springs|Thermal Valley/i,'MRT Red Line from Taipei Main Station to Beitou, change to the Xinbeitou branch (one stop), then walk 10–15 min.'],[/Yangmingshan/i,'Bus up the mountain from Beitou or Jiantan MRT, about 30–45 min. The Transit link shows today\'s bus number.']],
+ '2026-12-27':[[/Ruins/i,'Walk from Senado Square, 3–5 min.'],[/Rua da Felicidade/i,'Walk about 5 min from Senado Square.'],[/Lou Lim/i,'Walk about 10–15 min from Senado Square.'],[/Venetian/i,'Free hotel shuttle bus to Cotai from the old town area, or a taxi.'],[/City of Dreams/i,'Free shuttle or walk from The Venetian.']],
+ '2026-12-28':[[/Pak Tai/i,'Walk from your Wan Chai stay, about 5–10 min.'],[/Blue House/i,'Walk about 10 min from your Wan Chai stay.'],[/Hopewell|Times Square|SOGO/i,'MTR Island Line (blue), one stop from Wan Chai to Causeway Bay, or the tram, about 5 min.']],
+ '2026-12-29':[[/PMQ/i,'MTR Island Line from Wan Chai to Central (2 stops), then walk uphill or take the Mid-Levels escalator.'],[/Henderson/i,'Walk from PMQ, about 10 min.'],[/Observation Wheel/i,'Walk to Central Pier, about 15 min from The Henderson.'],[/Harbour City/i,'Star Ferry from Central Pier 7 to Tsim Sha Tsui, about 10 min.'],[/Head to the Peak/i,'Walk to the Peak Tram terminus on Garden Road, about 10–12 min from Central MTR.'],[/Peak Tram/i,'Peak Tram from the Garden Road terminus (about 10–12 min on foot from Central MTR), then about 8 min up.']],
+ '2026-12-30':[[/Apliu/i,'MTR Tsuen Wan Line (red) from Admiralty or Central to Sham Shui Po, about 20–25 min.'],[/Ladies/i,'MTR Tsuen Wan Line (red) from Sham Shui Po to Mong Kok, 2 stops.'],[/Sneakers|Fa Yuen/i,'Walk from Ladies\' Market, about 10 min.'],[/Temple Street/i,'MTR Tsuen Wan Line (red) from Mong Kok to Jordan, 2 stops, then walk.'],[/Avenue of Stars/i,'MTR Tsuen Wan Line (red) from Jordan to Tsim Sha Tsui, one stop, then walk to the waterfront.']],
+ '2026-12-31':[[/Wong Tai Sin/i,'MTR Kwun Tong Line (green) to Wong Tai Sin, exit B2.'],[/Chi Lin|Nan Lian/i,'MTR Kwun Tong Line, one stop from Wong Tai Sin to Diamond Hill, exit C2.'],[/M\+/i,'MTR to Austin station (Tuen Ma Line) or Kowloon Station (Tung Chung Line), then walk. The Transit link shows the best route.']],
+ '2027-01-01':[[/Ocean Park/i,'MTR Island Line to Admiralty, then the South Island Line to Ocean Park, about 20 min.'],[/Scenic coastal bus|Repulse/i,'Bus 6 or 6X toward Stanley goes through Repulse Bay. The Transit link shows the stop nearest you.'],[/Stanley/i,'Bus 6 or 6X from Central (Exchange Square) to Stanley, about 45–60 min.']],
+ '2027-01-02':[[/Bus 21/i,'Bus 21 from Tai O to Ngong Ping, about 40 min.'],[/Bus 11/i,'Bus 11 from Tung Chung to Tai O, about 40 min.'],[/Tai O/i,'Bus 11 from Tung Chung to Tai O, about 40 min.'],[/Tian Tan|Po Lin/i,'Walk from Ngong Ping Village, about 10 min.'],[/cable car/i,'Ngong Ping 360 cable car, about 25 min each way. Bus 23 from Tung Chung is the alternative.'],[/Citygate/i,'Walk from Tung Chung station, about 5 min.']],
+ '2027-01-03':[[/Choi Hung/i,'MTR Kwun Tong Line (green) to Choi Hung, exit C4.'],[/Kennedy Town Basketball/i,'MTR via Mong Kok and Admiralty to Kennedy Town (Island Line, blue), about 40 min, then walk about 10 min.'],[/Sai Wan/i,'Walk from Kennedy Town station, about 15 min.']]
+};
+function howFor(d,it){const l=HOW[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m?m[1]:null}
+const transitUrl=(a,b,city)=>'https://www.google.com/maps/dir/?api=1&travelmode=transit'+(a?'&origin='+encodeURIComponent(a+' '+cityName(city)):'')+'&destination='+encodeURIComponent(b+' '+cityName(city));
+function stopName(it){return it.text.split(/[,:(]/)[0].trim()}
+function placeName(d,it){const q=aliasQuery(it.text);if(q)return q;return IMG_SKIP.test(stopName(it))?null:stopName(it)}
+function transitLink(d,it){
+  const dest=placeName(d,it);if(!dest)return null;
+  const its=dayItems(d),i=its.indexOf(it),prev=i>0?its[i-1]:null,origin=prev?placeName(d,prev):null;
+  return h('a',{class:'maplink',href:transitUrl(origin,dest,d.city),target:'_blank',rel:'noopener',title:'Bus, train and MRT routes from the previous stop'},'Transit');
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1585,6 +1821,8 @@ const TILES=[
   ['pass','Cards and apps','card','Octopus, EasyCard, links'],
   ['share','Share summary','send','Text for family'],
   ['notes','Notes','pencil','Anything you jot down'],
+  ['tickets','Tickets to book','tag','Status and opening dates'],
+  ['sos','SOS card','alert','Address, numbers, help phrases'],
   ['offmap','Offline maps','map','Download once, use with no signal'],
   ['print','Print itinerary','printer','Print or save as PDF'],
   ['photo','Photo spots','camera','Best light for each spot'],
@@ -1617,7 +1855,7 @@ function renderSetup(){
     h('button',{class:'btn sm',onclick:()=>go('more','cheat')},'Open the import box')));
   return out;
 }
-const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],offmap:['Offline maps',renderOfflineMaps],setup:['Setup',renderSetup]};
+const SUBS={book:['Bookings',renderBook],cheat:['Show a driver',renderInfo],pack:['Packing',renderPack],shop:['Shopping',renderShop],talk:['Phrases',renderTalk],tips:['Tips and weather',renderTips],pass:['Cards and apps',renderGo],share:['Share summary',renderShare],notes:['Notes',renderNotes],photo:['Photo spots',renderPhotos],print:['Print itinerary',renderPrint],offmap:['Offline maps',renderOfflineMaps],tickets:['Tickets to book',renderTickets],sos:['SOS card',renderSos],setup:['Setup',renderSetup]};
 function renderSub(id){
   const s=SUBS[id];if(!s)return renderMore();
   let body=s[1]();
