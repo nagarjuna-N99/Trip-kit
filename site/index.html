@@ -1531,6 +1531,49 @@ function thumbFor(day,it){
   if(!aliasQuery(it.text)&&IMG_SKIP.test(name))return null;
   return placeThumb(aliasQuery(it.text)?it.text:name,day.city,56);
 }
+
+// ---------- food photos: the dish is shown so you can recognise it, shops link to Google Images ----------
+const FOOD_DISH=[
+ [/beef noodle/i,'Beef noodle soup'],[/oyster vermicelli|Ay-Chung/i,'Oyster vermicelli'],[/xiaolongbao|Din Tai Fung/i,'Xiaolongbao'],[/mango shaved ice|shaved ice/i,'Shaved ice'],
+ [/bubble tea/i,'Bubble tea'],[/fried chicken/i,'Taiwanese fried chicken'],[/stinky tofu/i,'Stinky tofu'],[/tea eggs?/i,'Tea egg'],[/snake soup/i,'Snake soup'],
+ [/oyster omelet/i,'Oyster omelette'],[/braised pork rice/i,'Lu rou fan'],[/mochi/i,'Mochi'],[/hot-spring-egg|hot spring egg/i,'Onsen tamago'],
+ [/pork chop bun/i,'Pork chop bun'],[/Tai Cheong/i,'Egg tart'],[/egg tart/i,'Pastel de nata'],[/wonton noodle/i,'Wonton noodles'],[/congee/i,'Congee'],
+ [/African chicken/i,'African chicken'],[/minchi/i,'Minchi'],[/bean-curd|tofu pudding|soy pudding/i,'Douhua'],[/dim sum/i,'Dim sum'],[/roast goose/i,'Roast goose'],
+ [/beef brisket/i,'Beef brisket noodle'],[/BBQ pork bun|char siu/i,'Char siu bao'],[/pineapple bun/i,'Pineapple bun'],[/claypot rice|clay pot/i,'Clay pot rice'],
+ [/cha chaan teng/i,'Cha chaan teng'],[/egg waffle/i,'Bubble waffle'],[/ice-cream|ice cream/i,'Ice cream'],[/seafood skewer|grilled seafood/i,'Grilled seafood'],[/noodle shops?|noodles/i,'Noodle']
+];
+const FOOD_SHOP=[
+ [/Din Tai Fung/,'Din Tai Fung Xinyi Taipei'],[/Lin Dong Fang/,'Lin Dong Fang beef noodle Taipei'],[/Ay-Chung/,'Ay-Chung Flour-Rice Noodle Ximending'],[/Chun Shui Tang/,'Chun Shui Tang Taichung'],
+ [/Miyahara/,'Miyahara Taichung'],[/Hot-Star/,'Hot-Star Large Fried Chicken Shilin'],[/Antonio/,'Antonio restaurant Taipa Village'],[/Tai Lei Loi Kei/,'Tai Lei Loi Kei Taipa'],
+ [/Margaret/,'Margaret\'s Cafe e Nata Macau'],[/Lord Stow/,'Lord Stow\'s Bakery Coloane'],[/Wong Chi Kei/,'Wong Chi Kei Macau'],[/Litoral/,'Restaurante Litoral Macau'],
+ [/Mak\'s Noodle/,'Mak\'s Noodle Central Hong Kong'],[/Kau Kee/,'Kau Kee Restaurant Hong Kong'],[/Yat Lok/,'Yat Lok Roast Goose Central'],[/Lin Heung/,'Lin Heung Tea House Hong Kong'],
+ [/Tai Cheong/,'Tai Cheong Bakery Hong Kong'],[/Kung Wo/,'Kung Wo Tofu Factory Sham Shui Po'],[/Tim Ho Wan/,'Tim Ho Wan Hong Kong'],[/Kam Wah/,'Kam Wah Cafe Mong Kok'],
+ [/Chi Lin Vegetarian/,'Chi Lin Vegetarian Diamond Hill'],[/Po Lin Monastery vegetarian/,'Po Lin Monastery vegetarian restaurant'],[/Tsui Wah/,'Tsui Wah Restaurant Hong Kong'],[/Kee Wah/,'Kee Wah Bakery Hong Kong']
+];
+function foodDishes(text){
+  const out=[];
+  for(const [re,q] of FOOD_DISH){if(re.test(text)&&!out.includes(q)){out.push(q);if(out.length>=2)break}}
+  return out;
+}
+function thumbQ(q,label,size,href){
+  const box=h('a',{class:'pimg',href:href||photosUrl(q),target:'_blank',rel:'noopener','aria-label':'Photos of '+label,title:'More photos of '+label,style:'width:'+size+'px;height:'+size+'px'},icon('camera',18));
+  box.dataset.q=q;box.dataset.n=label;
+  if(imgObs)imgObs.observe(box);else loadThumb(box);
+  return box;
+}
+function foodPanel(day,extra){
+  const inf=INFO[day.iso];
+  if(!inf||!inf.eat||!inf.eat.length)return h('div',{hidden:true});
+  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Where to eat nearby'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Food ideas for '+day.date+'. The pictures show the dish so you can recognise it. Check reviews and opening hours on the map.'));
+  inf.eat.forEach(x=>{
+    const shop=FOOD_SHOP.find(f=>f[0].test(x));
+    const q=shop?shop[1]:x.split(/[(,:]/)[0]+' restaurant';
+    const dishes=foodDishes(x);
+    const thumbs=dishes.length?h('div',{style:'display:flex;gap:6px;flex:0 0 auto'},dishes.map(d=>thumbQ(d,d,dishes.length>1?52:64,photosUrl(d+' food')))):null;
+    card.append(h('div',{class:'xp'},thumbs,h('div',{class:'xb'},x),h('div',{class:'xa'},aLink(mapUrl(q,day.city),'Map'),walkLink(q,day.city),shop?aLink(photosUrl(shop[1]),'Shop photos'):null)));
+  });
+  return card;
+}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1825,13 +1868,6 @@ function extraPanel(day,extra){
   l.forEach(([n,why,how,tag])=>card.append(h('div',{class:'xp'},placeThumb(n,day.city,64),
     h('div',{class:'xb'},h('b',null,n),tag?h('div',null,h('span',{class:'tg free'},tag)):null,h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
     h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),walkLink(n,day.city),h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
-  return card;
-}
-function foodPanel(day,extra){
-  const inf=INFO[day.iso];
-  if(!inf||!inf.eat||!inf.eat.length)return h('div',{hidden:true});
-  const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Where to eat nearby'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Food ideas for '+day.date+'. Check reviews and opening hours on the map.'));
-  inf.eat.forEach(x=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},x),h('div',{class:'xa'},aLink(mapUrl(x.split(/[(,:]/)[0]+' restaurant',day.city),'Map'),walkLink(x.split(/[(,:]/)[0]+' restaurant',day.city)))));
   return card;
 }
 function renderAside(){
