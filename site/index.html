@@ -375,7 +375,7 @@ const GO={
 '2026-12-16':{go:[
  ['Home → home airport','Cab or airport bus (Pushpak)','About 1h from most of the city','Boarding pass. Arrive about 3h before the 23:55 departure.',0],
  ['Hanoi layover (3h05m)','Stay airside in Noi Bai T2 and follow the transfer signs','Same terminal, about 20 min to your gate','On one ticket you normally stay in transit. Confirm with your airline that no transit visa is needed.',0],
- ['Taoyuan Airport T2 → Taipei Main Station','Taoyuan Airport MRT (express or commuter) from the T2 station','Express about 35–40 min; commuter about 50 min','About NT$150. Buy a ticket at the machine or pay with an EasyCard (card sold at the MRT service counter).',1],
+ ['Taoyuan Airport T2 → Taipei Main Station','Taoyuan Airport MRT (express or commuter) from the T2 station','Express about 35–40 min; commuter about 50 min','About NT$150–160. Buy a ticket at the machine or pay with an EasyCard (card sold at the MRT service counter).',1],
  ['Taipei Main Station → hostel','Walk, 550 m','About 8 min','Free',0]],
  near:['Ximending (shops and street food, about 10 min by MRT or 20 min on foot)','228 Peace Memorial Park and the Presidential Office Building','Dihua Street (old tea and dried-goods street, Dadaocheng)','National Taiwan Museum, next to 228 Park']},
 '2026-12-18':{go:[
@@ -426,12 +426,12 @@ const GO={
 '2026-12-25':{go:[
  ['Hostel → Beitou','MRT Red line to Beitou, then the short Xinbeitou branch','About 35 min','About NT$35 with an EasyCard',0],
  ['Beitou Thermal Valley and Hot Spring Museum','Walk from Xinbeitou Station','About 10–15 min','Museum free, Thermal Valley free (closed Mondays). Public spa pools need a swimsuit, about NT$150–200.',0],
- ['Beitou → Yangmingshan','Bus S15 or Red 5 up the mountain','About 30–45 min','About NT$15–30 with an EasyCard',0],
+ ['Beitou → Yangmingshan','Bus up the mountain (for example S15 or 230; check the live app for today\'s route)','About 30–45 min','About NT$15–30 with an EasyCard',0],
  ['Yangmingshan National Park','Short walks around the visitor centre','Free; trails take 1–2h','Free entry',0],
  ['Yangmingshan → Taipei','Bus to Jiantan or Shilin MRT, then Red line','About 1h','Bus and MRT with an EasyCard',0]],
  near:['Xiaoyoukeng fumaroles','Lengshuikeng hot spring and foot bath','Beitou Plum Garden and Ketagalan Culture Centre','Chinese Culture University Sky Garden']},
 '2026-12-26':{go:[
- ['Hostel → Taoyuan Airport','Taipei Main Station, then Airport MRT express to T1 or T2','About 40 min on the train','About NT$150. Leave the hostel before 11:00 for a midday flight, and be at the airport 2.5h before.',0],
+ ['Hostel → Taoyuan Airport','Taipei Main Station, then Airport MRT express to T1 or T2','About 40 min on the train','About NT$150–160. Leave the hostel before 11:00 for a midday flight, and be at the airport 2.5h before.',0],
  ['Taipei → Hong Kong flight','Airline','About 1h50m','Booked',0],
  ['HKG → HZMB Hong Kong Port','Airport bus or shuttle across to the HZMB port','About 15–25 min','About HK$ 20–40',1],
  ['HZMB Hong Kong Port → Macau','HZMB shuttle bus (Golden Bus), then clear Macau immigration','About 40–60 min plus queues, so plan 2h from landing','About HK$ 65. Pay cash in HKD or MOP, or use the operator\'s ticket machine.',1],
@@ -474,8 +474,8 @@ const GO={
 '2027-01-01':{go:[
  ['Wan Chai → Ocean Park','MTR to Admiralty, then the South Island line to Ocean Park','About 20 min','About HK$ 8–10. Park ticket about HK$ 500–600, cheaper online.',1],
  ['Ocean Park → Stanley','Bus or taxi, check live maps for the direct route; or go via Central','About 30–60 min','About HK$ 10–20 on the bus',0],
- ['Scenic route via Repulse Bay','Bus 6, 6X or 66 between Central and Stanley','About 45–60 min from Central','Octopus card, about HK$ 10–15',0],
- ['Stanley → Wan Chai','Bus 6X or 63 back to Central, then MTR','About 1h','Octopus card',0]],
+ ['Scenic route via Repulse Bay','Bus 6 or 6X between Central (Exchange Square) and Stanley','About 45–60 min from Central','Octopus card, about HK$ 10–15',0],
+ ['Stanley → Wan Chai','Bus 6 or 6X back to Central, then MTR','About 1h','Octopus card',0]],
  near:['Repulse Bay Beach and the Kwun Yam shrine','Aberdeen Promenade and the floating restaurants','Stanley Main Beach and Murray House','Tin Hau Temple, Stanley']},
 '2027-01-02':{go:[
  ['Wan Chai → Tung Chung','MTR Island line to Central, then the Airport Express/Tung Chung line from Hong Kong Station','About 50 min','About HK$ 25–30 with an Octopus card',0],
@@ -1085,7 +1085,7 @@ function btnLink(href,txt){return h('a',{class:'btn sm',href,target:'_blank',rel
 function stopRow(day,it){
   return h('div',{class:'st'+(it.done?' done':'')},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'))));
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),legFor(day,it)?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)));
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -1190,6 +1190,7 @@ function renderPlan2(){
     x.addEventListener('keydown',e=>{if(e.key==='Enter')add()});
     card.append(h('div',{class:'row',style:'margin-top:12px'},tm,x,h('button',{class:'btn sm',onclick:add},'Add')));
     out.push(card);
+    out.push(h('p',{class:'note',style:'padding:0 4px'},'Walking times are estimates. Tap Walk on any place for live walking directions from where you are.'));
     if(d.note)out.push(h('p',{class:'note',style:'padding:0 4px'},d.note));
     out.push(extraPanel(d,'m-only'));
     out.push(foodPanel(d,'m-only'));
@@ -1208,7 +1209,7 @@ function renderPlan2(){
     else{
       out.push(h('div',{class:'card'},h('p',{style:'margin:0'},inf.about)));
       [['Must buy',inf.buy],['Must visit',inf.visit],['Nearby',g&&g.near]].forEach(([tt,l])=>{
-        if(l&&l.length)out.push(h('div',{class:'card'},h('div',{class:'sec'},tt),h('ul',{class:'list'},l.map(x=>h('li',null,x,tt==='Must visit'||tt==='Nearby'?[' ',aLink(mapUrl(x.split(/[(,]/)[0],d.city),'Map')]:null)))));
+        if(l&&l.length)out.push(h('div',{class:'card'},h('div',{class:'sec'},tt),h('ul',{class:'list'},l.map(x=>h('li',null,x,tt==='Must visit'||tt==='Nearby'?[' ',aLink(mapUrl(x.split(/[(,]/)[0],d.city),'Map'),' ',walkLink(x.split(/[(,]/)[0],d.city)]:null)))));
       });
     }
   }else{
@@ -1300,7 +1301,7 @@ function buildPrint(o){
     const pp=o.mode==='photo'&&PHOTO_PLAN[d.iso];
     const blk=h('section',{class:'pr-day pr-'+cls(d.city)},h('h2',null,di.n+' · '+d.date+' · '+d.city),h('div',{class:'pr-title'},d.title));
     if(o.bookings)(d.bookings||[]).forEach(b=>blk.append(h('div',{class:'pr-bk'},'Booked: '+b)));
-    blk.append(h('table',{class:'pr-t'},items.map(it=>h('tr',null,h('td',{class:'pr-time'},it.time||''),h('td',null,'☐  '+it.text)))));
+    blk.append(h('table',{class:'pr-t'},items.map(it=>h('tr',null,h('td',{class:'pr-time'},it.time||''),h('td',null,'☐  '+it.text,legFor(d,it)?h('div',{style:'font-size:10px;color:#444'},legFor(d,it)):null)))));
     if(pp)blk.append(h('div',{class:'pr-note'},'Reordered for photography: '+pp.why));
     if(d.heads)blk.append(h('div',{class:'pr-note'},'Heads up: '+d.heads));
     if(d.note)blk.append(h('div',{class:'pr-note'},d.note));
@@ -1328,7 +1329,7 @@ function printText(o){
   printDays(o).forEach(({d,di,items})=>{
     L.push(di.n.toUpperCase()+' · '+d.date+' · '+d.city+' · '+d.title);
     if(o.bookings)(d.bookings||[]).forEach(b=>L.push('  Booked: '+b));
-    items.forEach(it=>L.push('  '+(it.time?it.time.padEnd(14):'')+'[ ] '+it.text));
+    items.forEach(it=>{L.push('  '+(it.time?it.time.padEnd(14):'')+'[ ] '+it.text);const lg=legFor(d,it);if(lg)L.push('                  ('+lg+')')});
     if(d.heads)L.push('  Heads up: '+d.heads);
     if(o.go&&GO[d.iso])GO[d.iso].go.forEach(l=>L.push('  > '+l[0]+' ('+l[1]+', '+l[2]+')'+(l[4]?' - ticket needed':'')));
     if(o.notes&&d.myNote)L.push('  My notes: '+d.myNote);
@@ -1435,6 +1436,29 @@ function renderOfflineMaps(){
   out.push(h('p',{class:'muted'},'Tip: also save the stations you use, for example Taipei Main Station and Hong Kong Station, by zooming in before you download.'));
   return out;
 }
+
+// ---------- walking times between stops (estimates) and live walking directions ----------
+const walkUrl=(q,city)=>'https://www.google.com/maps/dir/?api=1&travelmode=walking&destination='+encodeURIComponent(q+' '+cityName(city));
+const walkLink=(q,city)=>h('a',{class:'maplink',href:walkUrl(q,city),target:'_blank',rel:'noopener',title:'Walking directions from where you are'},'Walk');
+const LEGS={
+ '2026-12-16':[[/Check in/i,'Walk about 8 min from Taipei Main Station (about 550 m)'],[/evening walk|Ximending/i,'Walk about 15 min from Taipei Main Station to Ximending']],
+ '2026-12-18':[[/observatory/i,'Not a walk: MRT about 20 min, then a short walk inside Taipei 101'],[/Lunch/i,'Walk about 5–10 min from Taipei 101'],[/Xiangshan|Elephant Mountain/i,'MRT about 10 min from Taipei 101, then about 20–30 min uphill on stone steps'],[/Golden hour|Summit/i,'About 20–30 min uphill walk from the trailhead']],
+ '2026-12-19':[[/THSR\/TRA/i,'Walk about 8 min from your Taipei stay to Taipei Main Station'],[/Rainbow Village/i,'Not a walk: taxi about 25 min from Taichung HSR'],[/Miyahara/i,'Not a walk: taxi or bus about 25–30 min from Rainbow Village'],[/Taichung Park|Calligraphy/i,'Walk about 20 min from Miyahara to Taichung Park'],[/Fengjia/i,'Not a walk: taxi or bus about 20–30 min']],
+ '2026-12-20':[[/TRA to Yingge/i,'Walk about 8 min from your Taipei stay to the station, then a train of about 30 min'],[/Yingge Historic|Ceramics Street/i,'Walk about 10–15 min from Yingge Station'],[/Art Museum/i,'Walk about 15 min from the Old Street, or a short taxi'],[/Longshan/i,'MRT one stop from Taipei Main. Longshan Temple to Bopiliao is about a 5 min walk'],[/Huaxi/i,'Walk about 10 min from Longshan Temple']],
+ '2026-12-21':[[/National Palace Museum/i,'Not a walk: MRT to Shilin, then a bus of about 15 min'],[/Shilin Night Market/i,'Walk about 5 min from Jiantan MRT']],
+ '2026-12-22':[[/Seaside|Liyu/i,'Not a walk: bike or taxi, about 5 km']],
+ '2026-12-23':[[/Check in, rent/i,'Walk about 5–10 min from the harbour, or ask your hostel for a pickup'],[/Scooter loop/i,'Not a walk: about 20 km ring road by scooter'],[/Zhaori/i,'Scooter about 10 min from the village']],
+ '2026-12-25':[[/Beitou Hot Springs|Thermal Valley/i,'Walk about 10–15 min from Xinbeitou Station'],[/Lunch in Beitou/i,'Walk about 5–10 min']],
+ '2026-12-27':[[/Ruins/i,'Walk about 3–5 min from Senado Square'],[/Senado/i,'Walk about 3–5 min to the Ruins of St. Paul\'s'],[/Lunch/i,'Walk about 5 min from Senado Square'],[/Venetian/i,'The Venetian and The Parisian are about 5–10 min apart on foot'],[/City of Dreams/i,'Walk about 10–15 min from The Venetian, or take a free shuttle']],
+ '2026-12-28':[[/Hopewell|Times Square|SOGO/i,'Wan Chai to Causeway Bay: tram or MTR about 5 min, or about 20–25 min on foot']],
+ '2026-12-29':[[/PMQ/i,'Walk about 15–20 min uphill from Central MTR, or use the Mid-Levels escalator'],[/Henderson/i,'Walk about 10 min from PMQ'],[/Peak Tram/i,'Walk about 10–12 min from Central MTR to the tram terminus'],[/Lugard/i,'Flat path, about 1 hour for the full loop']],
+ '2026-12-30':[[/Sneakers|Fa Yuen/i,'Walk about 10 min from Ladies\' Market'],[/Temple Street/i,'MTR to Jordan, then walk about 10–12 min'],[/Avenue of Stars/i,'MTR to Tsim Sha Tsui, then walk about 10 min']],
+ '2026-12-31':[[/Wong Tai Sin/i,'MTR exit B2 is right at the temple, about 2 min'],[/Chi Lin|Nan Lian/i,'MTR one stop to Diamond Hill, then about 5 min on foot']],
+ '2027-01-01':[[/Stanley/i,'Stanley Market to the waterfront is about a 5 min walk']],
+ '2027-01-02':[[/Tian Tan|Po Lin/i,'Walk about 10 min from Ngong Ping Village, then 268 steps up'],[/Tai O/i,'Walk about 10 min from the bus stop to the stilt houses'],[/Citygate/i,'Walk about 5 min from Tung Chung station']],
+ '2027-01-03':[[/Kennedy Town Basketball/i,'Walk about 10 min from Kennedy Town station'],[/Sai Wan/i,'Walk about 15 min from Kennedy Town station']]
+};
+function legFor(d,it){const l=LEGS[d.iso];if(!l)return null;const m=l.find(x=>x[0].test(it.text));return m?m[1]:null}
 // ---- More ----
 const TILES=[
   ['book','Bookings','ticket','Flights, stays, to-do'],
@@ -1513,7 +1537,7 @@ function stampPanel(day,extra){
     h('p',{class:'muted',style:'margin:2px 0 4px'},STAMP_DAY[day.iso]||'Where free souvenir stamps are often found around '+key+'. Not guaranteed, so ask at the counter.'));
   l.forEach(([n,why,how])=>card.append(h('div',{class:'xp'},
     h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
-    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map')))));
+    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),walkLink(n,day.city)))));
   const ph=STAMP_PHRASE[day.city];
   if(ph)card.append(h('div',{class:'heads',style:'margin:10px 0 0'},h('b',null,'Ask '),h('span',{style:'font-family:var(--han)'},ph[0]),h('div',{class:'muted'},ph[1])),
     h('p',{class:'muted',style:'margin:8px 0 0'},'Tip: carry a small notebook or card to stamp.'));
@@ -1606,7 +1630,7 @@ const openDay=iso=>{const d=S.days.find(x=>x.iso===iso);if(d){S.selDay=d.id;S.pl
 function photoRow(sp,withDay){
   const [n,city,iso,best,why,inPlan,note]=sp,day=S.days.find(x=>x.iso===iso);
   const flag=note&&!/^Matches/.test(note);
-  const acts=[aLink(mapUrl(n,city==='Taiwan'?'Taiwan':city),'Map')];
+  const acts=[aLink(mapUrl(n,city==='Taiwan'?'Taiwan':city),'Map'),walkLink(n,city)];
   if(withDay&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>openDay(iso)},'Open day'));
   if(!inPlan&&day)acts.push(h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add'));
   return h('div',{class:'xp'},h('div',{class:'xb'},h('b',null,n),h('div',null,best),h('div',{class:'muted'},why),
@@ -1698,14 +1722,14 @@ function extraPanel(day,extra){
   const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Nearby, not on your plan'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Ideas close to where you are on '+day.date+'. Tap Add to put one on your stops.'));
   l.forEach(([n,why,how])=>card.append(h('div',{class:'xp'},
     h('div',{class:'xb'},h('b',null,n),h('div',{class:'muted'},why),h('div',{class:'muted'},how)),
-    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
+    h('div',{class:'xa'},aLink(mapUrl(n,day.city),'Map'),walkLink(n,day.city),h('button',{class:'btn sm ghost',onclick:()=>{dayItems(day).push({id:uid(),time:'',text:n,done:false});save();render();toast('Added to your stops')}},'Add')))));
   return card;
 }
 function foodPanel(day,extra){
   const inf=INFO[day.iso];
   if(!inf||!inf.eat||!inf.eat.length)return h('div',{hidden:true});
   const card=h('div',{class:'card'+(extra?' '+extra:'')},h('h3',null,'Where to eat nearby'),h('p',{class:'muted',style:'margin:2px 0 4px'},'Food ideas for '+day.date+'. Check reviews and opening hours on the map.'));
-  inf.eat.forEach(x=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},x),h('div',{class:'xa'},aLink(mapUrl(x.split(/[(,:]/)[0]+' restaurant',day.city),'Map')))));
+  inf.eat.forEach(x=>card.append(h('div',{class:'xp'},h('div',{class:'xb'},x),h('div',{class:'xa'},aLink(mapUrl(x.split(/[(,:]/)[0]+' restaurant',day.city),'Map'),walkLink(x.split(/[(,:]/)[0]+' restaurant',day.city)))));
   return card;
 }
 function renderAside(){
