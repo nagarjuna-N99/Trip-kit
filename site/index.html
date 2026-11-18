@@ -611,6 +611,19 @@ if(!S.todo.some(t=>/Dec 24/.test(t[0])))S.todo.splice(1,0,['Book the Taitung →
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 // ---------- helpers ----------
+// Shows the rupee value beside any NT$, HK$, MOP, TWD or HKD amount, using the current rates (live when the hosted app has them).
+const AMT_RE=/(NT\$|HK\$|\bMOP\b|\bTWD\b|\bHKD\b)\s?(\d(?:[\d,]*\d)?(?:\.\d+)?)(?:\s?[–-]\s?(\d(?:[\d,]*\d)?(?:\.\d+)?))?(\+)?/g;
+function inrify(str){
+  try{
+    if(typeof str!=='string'||!/NT\$|HK\$|MOP|TWD|HKD/.test(str))return str;
+    return str.replace(AMT_RE,(m,cur,a,b,plus)=>{
+      const code=cur==='NT$'||cur==='TWD'?'TWD':cur==='HK$'||cur==='HKD'?'HKD':'MOP';
+      const r=S.rates[code];if(!(r>0))return m;
+      const v=x=>Math.round(parseFloat(x.replace(/,/g,''))*r).toLocaleString('en-IN');
+      return m+' (≈ ₹'+v(a)+(b?'–'+v(b):'')+(plus?'+':'')+')';
+    });
+  }catch(e){return str}
+}
 function h(tag,attrs,...kids){
   const e=document.createElement(tag);
   for(const k in (attrs||{})){
@@ -620,7 +633,7 @@ function h(tag,attrs,...kids){
     else if(v===true)e.setAttribute(k,'');
     else if(v!==false&&v!=null)e.setAttribute(k,v);
   }
-  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(c))}
+  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(typeof c==='string'?inrify(c):c))}
   return e;
 }
 const fmt=(n,d=2)=>Number(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -773,7 +786,7 @@ function cashCard(){
   why.push('Exchange rates: '+(LIVE.fxAt&&r.auto!==false?'live, '+ago(LIVE.fxAt):'manual or saved values')+'.');
   CASH_FIXED.forEach(([c,v,t])=>why.push('Fixed '+c+' '+v+': '+t+'.'));
   return h('div',{class:'card'},h('h3',{style:'margin-bottom:6px'},'Cash to carry'),
-    h('div',{class:'conv'},['TWD','HKD','MOP'].map(c=>h('div',null,h('b',null,fmt(rounded(c),0)),h('span',null,c)))),
+    h('div',{class:'conv'},['TWD','HKD','MOP'].map(c=>h('div',null,h('b',null,fmt(rounded(c),0)),h('span',null,c+' · ≈ ₹'+inr(rounded(c)*r[c]))))),
     h('p',{class:'muted',style:'margin:8px 0 0'},'Macau shops accept Hong Kong dollars, so you can carry less MOP and use HKD.'),
     h('details',{class:'g',style:'margin-top:8px'},h('summary',null,'How this is worked out'),h('ul',{class:'near'},why.map(x=>h('li',null,x)))));
 }
@@ -1336,7 +1349,7 @@ function printText(o){
     L.push('');
   });
   L.push('Emergency: Taiwan 110 / 119 (112 mobile), Hong Kong 999, Macau 999');
-  return L.join('\n');
+  return inrify(L.join('\n'));
 }
 function doPrint(){
   const o=printOpts();buildPrint(o);
