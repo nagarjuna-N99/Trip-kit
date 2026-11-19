@@ -1,6 +1,6 @@
 // Service worker: keeps the app and its fonts available offline.
 // Bump CACHE when index.html changes so phones pick up the new version.
-const CACHE = 'trip-kit-v33';
+const CACHE = 'trip-kit-v34';
 const TILES = 'trip-tiles-v1'; // map tiles and the map library, kept across app updates
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
