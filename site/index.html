@@ -324,7 +324,7 @@ D('2026-12-23',null,'Wed Dec 23','Taiwan','Green Island',
  'Winter sea conditions often cancel or delay Green Island ferries. Check the ferry the evening before. Taiwan scooter rental usually needs a licence it accepts; check whether your Indian licence or an international permit works, or hire an e-bike, taxi or island tour instead.',
  [['08:00','Ferry from Fugang Harbour to Green Island (about 30–50 min)'],['10:00','Check in, rent a scooter'],['11:00','Scooter loop: Guanyin Cave, Little Great Wall, Sika Deer park'],['14:00','Zhaori Hot Spring (one of the world\'s few seawater hot springs), afternoon soak'],['17:00','Dabaisha Beach sunset, seafood dinner']]),
 D('2026-12-24',null,'Thu Dec 24','Taiwan','Green Island → Kaohsiung → Taipei',[],'Changed from the PDF: the direct 13:00 train to Taipei (arrive 18:00) became a trip through Kaohsiung (arrive about 22:30). If the ferry runs late or the sea is rough, take the direct train and skip Kaohsiung.',null,
- [['06:00','Optional sunrise soak at Zhaori Hot Spring'],['09:00','Return scooter, ferry back to Fugang Harbour, Taitung'],['10:45','Taxi from Fugang Harbour to Taitung Station, pick up a lunch box'],['12:00','Train from Taitung to Kaohsiung (about 2h15)'],['14:30','Kaohsiung Main Station, leave bags in a locker'],['14:45','Formosa Boulevard Station, Dome of Light'],['15:15','Pier-2 Art Center, old warehouses turned arts area'],['15:45','Kaohsiung Music Center, harbourfront music complex'],['16:30','Cijin Island, ferry across and sunset (about 17:15)'],['18:45','Liuhe Night Market, dinner'],['20:15','MRT Red Line to Zuoying, then high speed rail to Taipei (about 1h45–2h)'],['22:30','Arrive Taipei, back at your Taipei stay']]),
+ [['06:00','Optional sunrise soak at Zhaori Hot Spring'],['09:00','Return scooter, ferry back to Fugang Harbour, Taitung'],['10:45','Taxi from Fugang Harbour to Taitung Station, pick up a lunch box'],['12:00','Train from Taitung to Kaohsiung (about 2h)'],['14:30','Kaohsiung Main Station, leave bags in a locker'],['14:45','Formosa Boulevard Station, Dome of Light'],['15:15','Pier-2 Art Center, old warehouses turned arts area'],['15:45','Kaohsiung Music Center, harbourfront music complex'],['16:30','Cijin Island, ferry across and sunset (about 17:15)'],['18:45','Liuhe Night Market, dinner'],['20:15','MRT Red Line to Zuoying, then high speed rail to Taipei (about 1h45–2h)'],['22:30','Arrive Taipei, back at your Taipei stay']]),
 D('2026-12-25',null,'Fri Dec 25','Taiwan','Beitou and Yangmingshan',[],'',null,
  [['10:00','Beitou Hot Springs and Thermal Valley'],['13:00','Lunch in Beitou'],['15:00','Yangmingshan National Park, short hike'],['19:00','Final Taipei dinner, pack for Hong Kong / Macau leg']]),
 D('2026-12-26',null,'Sat Dec 26','Macau','Taipei → Hong Kong → Macau',
@@ -427,7 +427,7 @@ const GO={
 '2026-12-24':{go:[
  ['Green Island → Fugang Harbour','Ferry','About 30–50 min','Ticket about NT$500–550. Book the return when you arrive.',1],
  ['Fugang Harbour → Taitung Station','Taxi','About 20–25 min','About NT$350–450',0],
- ['Taitung → Kaohsiung','TRA express on the south line','About 2h15','Reserved ticket needed. Not booked yet.',1],
+ ['Taitung → Kaohsiung','TRA express on the south line','About 2h','Reserved ticket needed. Not booked yet.',1],
  ['Kaohsiung city and harbour','MRT Red and Orange lines, light rail and the Cijin ferry','About 15–30 min between stops','Tap EasyCard. Keep cash for the ferry.',0],
  ['Zuoying → Taipei Main Station','High speed rail (THSR)','About 1h45–2h','Ticket needed. EasyCard is not accepted. Check the last train.',1],
  ['Taipei Main Station → hostel','Walk','About 8 min','Free',0]],
@@ -1162,6 +1162,7 @@ function renderToday(){
   const sc=setupCard();if(sc)out.push(sc);
   out.push(clockCard());
   {const nw=day?nowCard(day):null;if(nw)out.push(nw)}
+  if(day&&live){out.push(lateBar(day));{const fc=ferryCard(day);if(fc)out.push(fc)}}
   {const nc=nearCard();if(nc)out.push(nc)}
   if(toGo>0&&day){
     out.push(h('div',{class:'hero g-Taiwan'},h('span',{class:'pill'},'Trip countdown'),h('div',{class:'hero-k'},'Leaving in'),h('div',{class:'big'},toGo),
@@ -1225,6 +1226,8 @@ function renderPlan2(){
   const tab=S.planTab||'stops',g=GO[d.iso],inf=INFO[d.iso];
   if(tab==='stops'){
     out.push(lightBar(d));
+    out.push(lateBar(d));
+    {const fc=ferryCard(d);if(fc)out.push(fc)}
     {const pp=photoMode()&&PHOTO_PLAN[d.iso];if(pp)out.push(photoBanner(d,pp))}
     adviceHeads(d).forEach(n=>out.push(n));
     const card=h('div',{class:'card'});
@@ -1879,8 +1882,9 @@ const HOW={
  '2026-12-24':[
   [/Optional sunrise/i,'Scooter from the village, about 10 min, before sunrise (about 06:25).','Entry about NT$200.'],
   [/Return scooter|ferry back/i,'Return the scooter, then walk to the harbour. Ferry back to Fugang, then a taxi to Taitung Station.','Pay at the ferry counter. Check the sea forecast the evening before.'],
+  [/Direct train/i,'TRA express from Taitung Station straight to Taipei Main, about 3.5–4.5 hours, along the east coast.','Book on the TRA site or app, or at the station. Choose a train well after the ferry lands.'],
   [/Taxi from Fugang/i,'Taxi from Fugang Harbour to Taitung Station, about 20–25 min.','Taxi by meter, about NT$350–450.'],
-  [/Train from Taitung/i,'TRA express from Taitung Station to Kaohsiung on the south line, about 2h15. Get off at Kaohsiung Main Station.','Book on the TRA site or app, or at the station. Choose a train well after the ferry lands.'],
+  [/Train from Taitung/i,'TRA express from Taitung Station to Kaohsiung on the south line, about 2h. Get off at Kaohsiung Main Station.','Book on the TRA site or app, or at the station. Choose a train well after the ferry lands.'],
   [/Kaohsiung Main/i,'You arrive here by TRA. The MRT Red Line station of the same name is right inside the station, and lockers are near the gates.','Tap EasyCard for the MRT.'],
   [/Pier-2/i,'MRT Orange Line from Formosa Boulevard toward the harbour, then walk, or the light rail. Check the Transit link for the nearest stop.','Tap EasyCard.'],
   [/Liuhe/i,'MRT Orange Line back to Formosa Boulevard, a short walk to the market.','Tap EasyCard. The market is mostly open from evening.'],
@@ -2389,6 +2393,100 @@ function remTick(){
     const t=+m[1]*60+ +m[2],key='l'+k+it.id;
     if(!S.remSent[key]&&nm>=t-S.rem.lead&&nm<t){S.remSent[key]=1;pushNote('Leave soon: '+(it.time||''),it.text,key);save()}
   });
+}
+
+// ---------- running late, and the Dec 24 ferry planner ----------
+const pm=t=>{const x=/^(\d{1,2}):(\d{2})$/.exec(String(t||'').trim());return x?+x[1]*60+ +x[2]:null};
+const fm=m=>{m=Math.max(0,Math.round(m));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+function shiftTimes(d,mins){
+  S.late=S.late||{};const st=S.late[d.id]=S.late[d.id]||{orig:{},shift:0};
+  const n=new Date(),nm=n.getHours()*60+n.getMinutes(),isToday=d.iso===today();
+  dayItems(d).forEach(it=>{if(it.done)return;const m=pm(it.time);if(m===null)return;if(isToday&&m<nm-15)return;if(!(it.id in st.orig))st.orig[it.id]=it.time;it.time=fm(Math.min(m+mins,23*60+59))});
+  st.shift+=mins;save();render();toast('Moved the rest of today by '+mins+' min');
+}
+function undoLate(d){
+  const st=(S.late||{})[d.id];if(!st)return;
+  dayItems(d).forEach(it=>{if(it.id in st.orig)it.time=st.orig[it.id]});
+  delete S.late[d.id];save();render();toast('Times restored');
+}
+function lateBar(d){
+  const st=(S.late||{})[d.id],sh=st?st.shift:0;
+  const card=h('div',{class:'card'},h('div',{class:'row sp'},h('b',null,sh?'Running '+sh+' min late':'Running late?'),sh?h('button',{class:'btn sm ghost',onclick:()=>undoLate(d)},'Undo'):null),
+    h('div',{class:'muted',style:'margin-top:2px'},'Moves every timed stop that is not ticked off later. Then turn on Easy day to drop the optional ones.'),
+    h('div',{class:'chips',style:'margin-top:8px'},[15,30,60].map(n=>h('button',{class:'chip',onclick:()=>shiftTimes(d,n)},'+'+n+' min'))));
+  return card;
+}
+// Dec 24: you get back from Green Island at a time you do not know yet. Enter it and the day re-plans.
+const KH_TEXT={main:'Kaohsiung Main Station, leave bags in a locker',dome:'Formosa Boulevard Station, Dome of Light',pier:'Pier-2 Art Center, old warehouses turned arts area',music:'Kaohsiung Music Center, harbourfront music complex',cijin:'Cijin Island, ferry across and sunset (about 17:15)',liuhe:'Liuhe Night Market, dinner'};
+const KH_STAY={main:20,dome:30,pier:30,music:30,cijin:90,liuhe:75};
+const KH_ORDERS=[
+ ['Full plan',['main','dome','pier','music','cijin','liuhe']],
+ ['Without the Music Center',['main','dome','pier','cijin','liuhe']],
+ ['Without Pier-2 and the Music Center',['main','dome','cijin','liuhe']],
+ ['Dome of Light and Liuhe Night Market',['main','dome','liuhe']],
+ ['Dome of Light only',['main','dome']]
+];
+function khTravel(prev,cur){
+  if(cur==='dome')return 5;
+  if(cur==='pier')return 25;
+  if(cur==='music')return prev==='pier'?10:25;
+  if(cur==='cijin')return prev==='dome'?40:25;
+  if(cur==='liuhe')return prev==='cijin'?30:prev==='dome'?5:25;
+  return 10;
+}
+function ferryPlan(A,L){
+  const S1=A+40,T=Math.ceil((S1+20)/5)*5,K=T+120;
+  for(const [name,order] of KH_ORDERS){
+    let t=K,prev=null,ok=true;const rows=[];
+    for(const k of order){
+      if(k!=='main')t+=khTravel(prev,k);
+      if(k==='cijin'&&t>17*60){ok=false;break}
+      rows.push([t,KH_TEXT[k]]);t+=KH_STAY[k];prev=k;
+    }
+    if(!ok)continue;
+    const dep=t+30;
+    if(dep<=L)return {kind:'kh',name,rows,T,K,dep,arr:dep+110,A};
+  }
+  const Td=Math.ceil((S1+20)/5)*5;
+  return {kind:'direct',name:'Direct train to Taipei, skip Kaohsiung',T:Td,arr:Td+240,A};
+}
+function ferryItems(d,pl){
+  const out=[],first=d.items.find(i=>i.time==='06:00');
+  if(first)out.push([first.time,first.text]);
+  out.push([fm(pl.A-45),'Return scooter, ferry back to Fugang Harbour, Taitung'],[fm(pl.A+10),'Taxi from Fugang Harbour to Taitung Station, pick up a lunch box']);
+  if(pl.kind==='direct'){out.push([fm(pl.T),'Direct train from Taitung to Taipei (about 3.5–4.5h)'],[fm(pl.arr),'Arrive Taipei, back at your stay']);return out}
+  out.push([fm(pl.T),'Train from Taitung to Kaohsiung (about 2h)']);
+  pl.rows.forEach(r=>out.push([fm(r[0]),r[1]]));
+  out.push([fm(pl.dep-10),'MRT Red Line to Zuoying, then high speed rail to Taipei (about 1h45–2h)'],[fm(pl.arr),'Arrive Taipei, back at your stay']);
+  return out;
+}
+function applyFerryPlan(d,pl){
+  const done={};d.items.forEach(i=>{if(i.done)done[i.text]=1});
+  const items=ferryItems(d,pl).map(([time,text])=>({id:uid(),time,text,done:!!done[text]}));
+  d.items.splice(0,d.items.length,...items);
+  S.late&&delete S.late[d.id];
+  save();render();toast('Dec 24 plan updated');
+}
+function ferryCard(d){
+  if(d.iso!=='2026-12-24')return null;
+  S.ferry=S.ferry||{arr:'10:00',last:'21:00'};
+  const A=pm(S.ferry.arr),L=pm(S.ferry.last);
+  const card=h('div',{class:'card'},h('h3',null,'Ferry decides today'),
+    h('p',{class:'muted',style:'margin:2px 0 8px'},'Enter the time the ferry reaches Fugang Harbour. The app picks how much of Kaohsiung still fits and writes the day for you. These are estimates, so check the real train times.'));
+  const a=h('input',{type:'text',inputmode:'numeric',value:S.ferry.arr,placeholder:'10:00','aria-label':'Ferry arrives at Fugang at'});
+  const l=h('input',{type:'text',inputmode:'numeric',value:S.ferry.last,placeholder:'21:00','aria-label':'Last high speed rail you will board at Zuoying'});
+  const upd=()=>{if(pm(a.value)!==null)S.ferry.arr=a.value.trim();if(pm(l.value)!==null)S.ferry.last=l.value.trim();save();render()};
+  a.addEventListener('change',upd);l.addEventListener('change',upd);
+  card.append(h('div',{style:'display:grid;grid-template-columns:1fr 1fr;gap:8px'},h('label',null,h('div',{class:'muted'},'Ferry reaches Fugang'),a),h('label',null,h('div',{class:'muted'},'Last THSR from Zuoying'),l)));
+  if(A===null||L===null){card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'Use 24 hour times, for example 10:30.'));return card}
+  const pl=ferryPlan(A,L);
+  card.append(h('div',{class:'heads',style:'margin-top:10px'},h('b',null,pl.name+'. '),pl.kind==='kh'?'Train from Taitung about '+fm(pl.T)+', in Kaohsiung about '+fm(pl.K)+', high speed rail about '+fm(pl.dep)+', in Taipei about '+fm(pl.arr)+'.':'Train from Taitung about '+fm(pl.T)+', in Taipei about '+fm(pl.arr)+'.'));
+  const best={};
+  for(let t=7*60;t<=17*60;t+=5){const p=ferryPlan(t,L);if(p.kind==='kh')best[p.name]=t}
+  card.append(h('div',{class:'muted',style:'margin:8px 0 0'},h('b',null,'Latest ferry arrival for each version'),KH_ORDERS.map(([n])=>h('div',null,n+': '+(best[n]!==undefined?'by '+fm(best[n]):'not possible with this last train')))));
+  card.append(h('div',{class:'row',style:'margin-top:10px'},h('button',{class:'btn',onclick:()=>applyFerryPlan(d,pl)},'Use this plan for the day')));
+  card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'Time at each stop is rough, and the last high speed rail time is unconfirmed (default 21:00). The sea can delay the ferry. If it is later than the last version, take the direct train.'));
+  return card;
 }
 
 // ---------- how to ride and pay: step by step ----------
