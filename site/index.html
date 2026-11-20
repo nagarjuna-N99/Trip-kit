@@ -1119,9 +1119,10 @@ function nextItem(day,live){
 }
 function btnLink(href,txt){return h('a',{class:'btn sm',href,target:'_blank',rel:'noopener'},txt)}
 function stopRow(day,it){
-  return h('div',{class:'st'+(it.done?' done':'')},
+  const ab=aboutNode(it,false);
+  return h('div',{class:'st'+(it.done?' done':''),style:'flex-wrap:wrap'},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),' ',zhBtn(it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),cheapFor(it)?cheapNode(it):howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it));
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),' ',zhBtn(it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),cheapFor(it)?cheapNode(it):howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it),ab?h('div',{style:'flex:0 0 100%'},ab):null);
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -1161,6 +1162,7 @@ function renderToday(){
     h('h1',null,live&&day?day.title:toGo>0?'Almost time':'Welcome home')));
   const sc=setupCard();if(sc)out.push(sc);
   out.push(clockCard());
+  {const hc=hereCard(day);if(hc)out.push(hc)}
   {const nw=day?nowCard(day):null;if(nw)out.push(nw)}
   if(day&&live){out.push(lateBar(day));{const fc=ferryCard(day);if(fc)out.push(fc)}}
   {const nc=nearCard();if(nc)out.push(nc)}
@@ -2225,13 +2227,14 @@ function nowCard(day){
   setDist();card.append(info);
   if(howFor(day,nx))card.append(h('div',{style:'font-size:13px;margin-top:6px'},h('b',null,'Shortest route: '),howFor(day,nx)));
   {const cn=cheapNode(nx);if(cn)card.append(cn);else if(howPay(day,nx))card.append(h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,nx)))}
+  {const ab=aboutNode(nx,false);if(ab)card.append(ab)}
   const dest=placeName(day,nx)||stopName(nx);
   const row=h('div',{class:'row',style:'margin-top:10px;gap:8px;flex-wrap:wrap'});
   row.append(h('a',{class:'btn sm',href:'https://www.google.com/maps/dir/?api=1&travelmode=transit&destination='+encodeURIComponent(dest+' '+cityName(day.city)),target:'_blank',rel:'noopener'},'Go there (transit)'),
     h('a',{class:'btn sm ghost',href:walkUrl(dest,day.city),target:'_blank',rel:'noopener'},'Walk'));
   if(c)row.append(h('button',{class:'btn sm ghost',onclick:()=>{
     if(!navigator.geolocation){toast('This browser cannot share your location');return}
-    navigator.geolocation.getCurrentPosition(pp=>{NEAR.last={lat:pp.coords.latitude,lon:pp.coords.longitude,acc:pp.coords.accuracy};NEAR.at=Date.now();setDist()},()=>toast('Could not get your position'),{timeout:15000,maximumAge:30000});
+    navigator.geolocation.getCurrentPosition(pp=>{NEAR.last={lat:pp.coords.latitude,lon:pp.coords.longitude,acc:pp.coords.accuracy};NEAR.at=Date.now();setDist();render()},()=>toast('Could not get your position'),{timeout:15000,maximumAge:30000});
   }},'Where am I'));
   const z=zhFor(nx);if(z)row.append(h('button',{class:'btn sm ghost',onclick:()=>showZh(nx,z)},'中文 for the driver'));
   card.append(row);
@@ -2486,6 +2489,107 @@ function ferryCard(d){
   card.append(h('div',{class:'muted',style:'margin:8px 0 0'},h('b',null,'Latest ferry arrival for each version'),KH_ORDERS.map(([n])=>h('div',null,n+': '+(best[n]!==undefined?'by '+fm(best[n]):'not possible with this last train')))));
   card.append(h('div',{class:'row',style:'margin-top:10px'},h('button',{class:'btn',onclick:()=>applyFerryPlan(d,pl)},'Use this plan for the day')));
   card.append(h('p',{class:'muted',style:'margin:8px 0 0'},'Time at each stop is rough, and the last high speed rail time is unconfirmed (default 21:00). The sea can delay the ferry. If it is later than the last version, take the direct train.'));
+  return card;
+}
+
+// ---------- about this place: history and key facts, shown on the stop ----------
+// Short notes from general knowledge, so check dates and hours on site. "Read the full history" loads the Wikipedia introduction live in the hosted app.
+const PLACE_INFO=[
+ [/Taipei 101/i,'Completed in 2004, it was the tallest building in the world until 2010. The tower is shaped like stacked bamboo or pagoda segments, and a huge steel ball inside, the tuned mass damper, steadies it in typhoons and earthquakes.',['508 m tall, 101 floors above ground','Observatory on the 89th floor, with an outdoor deck on the 91st (weather permitting)','Lit with different colours on the hour at night']],
+ [/Xiangshan|Elephant Mountain/i,'A small hill on the edge of the Xinyi district, named for its shape. Locals use the stone steps as an everyday hiking and exercise trail, and the Six Giant Rocks are the classic spot to photograph Taipei 101.',['About 183 m high, 20–30 min of steps to the viewing platforms','Best near sunset and after dark','Bring a torch for the return']],
+ [/Longshan/i,'Founded in 1738 by settlers from Fujian, it has been rebuilt several times after fires, earthquakes and wartime bombing. It mixes Buddhist and Taoist worship, with Guanyin as the main deity.',['Open daily, early to late evening (check the hours)','Free to enter, offerings are optional','Quietest early in the morning']],
+ [/Bopiliao/i,'A Qing-era street with some of the oldest surviving shophouses in Taipei. The name refers to peeling the bark from timber that was once traded here. It was restored in the 2000s and now holds exhibitions and a school-themed museum.',['Closes around 18:00 and on Mondays','Free to walk around']],
+ [/National Palace Museum/i,'The collection came from the former imperial palace in Beijing and was moved to Taiwan in 1948–49. The Taipei building opened in 1965. It holds hundreds of thousands of artefacts.',['Famous pieces: the Jadeite Cabbage and the Meat-shaped Stone','Closed on Mondays','Allow 2–3 hours']],
+ [/Shilin Night/i,'One of Taipei\'s largest and best-known night markets, growing around the old Cixian Temple area from the early 1900s. The food court and the snack stalls are the main draw.',['Busiest after 19:00 on weekends','Famous for oyster omelettes, fried chicken cutlets and sausages']],
+ [/Dadaocheng/i,'A 19th-century trading port on the Tamsui River where tea, cloth and dried goods were shipped. Dihua Street keeps its old shophouses with ornate brick fronts, and many are now tea shops and small galleries.',['Shops close around 18:00','Riverside wharf is good for sunset']],
+ [/Wenchang/i,'A temple to Wenchang Dijun, the god of literature and examinations. Students and their families come to pray for good exam results.',['Free to enter','Small and quiet, especially on weekday evenings']],
+ [/Ximending/i,'Taipei\'s old entertainment district, shaped in the Japanese era. The Red House theatre, opened in 1908, still stands. Today it is the area for young shoppers, street food and live music.',['Busiest on evenings and weekends','Pedestrian streets around the Red House']],
+ [/Wistaria/i,'A Japanese-era timber house that has been a tea house since the early 1980s, long a meeting place for writers and artists.',['Tea service has a minimum spend','Check the opening hours']],
+ [/Performing Arts/i,'Opened in 2022 and designed by the architect Rem Koolhaas. Its glowing sphere-shaped theatre hangs over the market area and the building is open to the public.',['The public loop walk is free','Best seen lit at night']],
+ [/Thermal Valley|Beitou/i,'Beitou\'s hot springs were developed from the 1890s, and the hot spring culture here is Japanese in origin. Thermal Valley is a steaming green pool of sulphur water at about 90°C.',['Do not touch the water','Closed on Mondays','Public spa pools nearby need a swimsuit']],
+ [/Yangmingshan/i,'A volcanic national park north of Taipei. It was renamed Yangmingshan in the 1950s after the Ming philosopher Wang Yangming and became a national park in 1985.',['Sulphur vents and hot springs','Can be cold, windy and foggy, so bring a layer']],
+ [/Yingge/i,'Taiwan\'s ceramics town. Pottery has been made here since the early 1800s, thanks to local clay, and the Old Street is lined with potters\' shops and kilns.',['Hands-on pottery workshops','Many shops close in the evening']],
+ [/Rainbow Village/i,'A military dependents\' village scheduled for demolition, saved after a resident known as Rainbow Grandpa, Huang Yung-fu, painted it in bright colours around 2008.',['Small and best in daylight','Free to enter']],
+ [/Miyahara/i,'Built in 1927 as an eye clinic, it is now a dessert shop and gift store. The brick building and its bookshelf-style interior make it a favourite for ice cream and pastries.',['Queue for the ice cream','Close to Taichung Station']],
+ [/Taichung Park/i,'Opened in 1903 under Japanese rule, it is one of the city\'s oldest parks. The Lake Heart Pavilion is its best-known spot.',['Free to enter','Pleasant for an evening walk']],
+ [/Taichung Theater/i,'Opened in 2016 and designed by Toyo Ito. Its curved concrete walls and "sound cave" interior are the main attraction, and the building is open to the public.',['Free to walk in the public spaces','Looks best in warm light and after dark']],
+ [/Fengjia/i,'Taiwan\'s largest night market, which grew up around Feng Chia University, founded in 1961. It is known for creative street snacks.',['Open from late afternoon','Very crowded on weekends']],
+ [/Cijin/i,'A narrow sandbar island at the mouth of Kaohsiung harbour, reached by a short ferry. It has a lighthouse, a seafood street and a long dark beach, with temples dating back to the 1600s.',['Short ferry from the Gushan side','Sunset is the best time']],
+ [/Formosa Boulevard|Dome of Light/i,'The station sits where the Red and Orange MRT lines cross. Its glass ceiling, the Dome of Light by the artist Narcissus Quagliata, was completed in 2008 and is one of the largest glass artworks in the world. Formosa Boulevard is also tied to the 1979 democracy movement.',['Free to see, no ticket needed','About 30 m across']],
+ [/Pier-2/i,'Old harbour warehouses in Kaohsiung turned into an arts district from about 2001, with galleries, murals, shops and a small railway line running through.',['Free to wander','Best late afternoon into evening']],
+ [/Kaohsiung Music Center/i,'A modern harbourfront music centre that opened in 2021, with striking architecture. It is lit at night.',['Check opening hours, some venues close on Mondays']],
+ [/Liuhe/i,'One of Kaohsiung\'s best-known night markets, a few minutes from the Formosa Boulevard station. It is well known for seafood and local snacks.',['Opens in the evening','Popular with visitors, so some locals prefer other markets']],
+ [/Zhaori/i,'One of only a few seawater hot springs in the world, heated by volcanic activity on Green Island. The open-air pools sit right by the sea.',['Bring a swimsuit and towel','Entry fee applies, check the late hours']],
+ [/Green Island|Scooter loop|Guanyin/i,'Green Island is a volcanic island east of Taitung. It was a political prison during the White Terror, from the 1950s to the 1980s, and today it is known for its coast, diving and hot spring.',['The ring road is about 20 km','Winter seas often delay the ferry']],
+ [/Railway Art Village|Seaside/i,'The Railway Art Village is the site of the old Taitung railway station, now an arts space with galleries and food stalls. The region is also home to Taiwan\'s Indigenous peoples, including the Amis and Puyuma.',['Quiet and relaxed in the evening']],
+ [/Ruins/i,'The facade is all that remains of the Church of Mater Dei, built by the Jesuits between 1602 and 1640 and destroyed by fire in 1835. It is part of the UNESCO Historic Centre of Macau, listed in 2005.',['Free to see','The museum behind the facade holds relics','Crowded by midday, so go early or late']],
+ [/Senado/i,'The square has Portuguese-style wave-pattern paving, known as calçada. The Leal Senado building dates from 1784. The area is part of the UNESCO Historic Centre of Macau.',['Free to walk around','Quietest early in the morning']],
+ [/Monte Fort/i,'Built by the Jesuits in 1617–1626 to defend Macau. In 1622 a cannon shot from the fort hit the Dutch powder store and helped repel an attack.',['Free to enter','Short climb with city views']],
+ [/Rua da Felicidade/i,'The "Street of Happiness" was once a red-light district. It keeps its red shutters and old Portuguese-Chinese shopfronts and is now a street of snacks and souvenir shops.',['Best in the evening for street food']],
+ [/St\. Anthony/i,'A church that goes back to a wooden chapel in the 1500s, rebuilt in the 20th century. It is a popular wedding spot.',['Free to enter','Quiet area of the old town']],
+ [/Guia/i,'The fortress was built in 1622–1638, and the lighthouse next to it from 1865 is the oldest modern lighthouse on the China coast. It sits on the highest point of the peninsula.',['Cable car or a short climb','Best view over the old town']],
+ [/Lou Lim/i,'A Suzhou-style garden built in 1904 by the Lou family, a wealthy Chinese merchant family. Winding paths, ponds and a pavilion fill it.',['Free to enter','Quiet and shaded']],
+ [/Venetian|Parisian|City of Dreams|Cotai/i,'The Cotai Strip was reclaimed land between two islands. The Venetian opened in 2007 and was at the time the largest casino in the world. The Parisian followed in 2016 and City of Dreams in 2009.',['Free to walk in and see','Canals and gondolas inside the Venetian']],
+ [/Casino Lisboa|Grand Lisboa/i,'The Lisboa opened in 1970 and long defined Macau\'s casino scene. The Grand Lisboa, shaped like a lotus, followed in 2008.',['Looks best lit up after dark']],
+ [/Taipa/i,'Taipa Village is the oldest part of Taipa, with narrow Portuguese-style streets, egg tart shops and the five colonial-style Taipa Houses, restored as a museum.',['Quieter in the evening','Good for snacks']],
+ [/Pak Tai/i,'Built in 1863 and dedicated to Pak Tai, a Taoist god of water. It is one of Wan Chai\'s oldest temples and a graded historic building.',['Free to enter','Closes late afternoon']],
+ [/Blue House/i,'A 1920s tenement that survived redevelopment, preserved with its blue paint. It is a graded historic building and a community project.',['Free to see from outside']],
+ [/Hopewell/i,'A round tower completed in 1980, once Hong Kong\'s tallest building. It has an outdoor glass lift to the upper floors and a revolving restaurant at the top.',['Lift trick: 3rd floor to 17th, then up to the 56th']],
+ [/Escalator/i,'Opened in 1993, it is the longest outdoor covered escalator system in the world. It links Central with the Mid-Levels over about 800 m.',['Runs downhill 6:00 to 10:20, then uphill until midnight','Free to ride']],
+ [/PMQ/i,'A former police married quarters built in 1951, now a creative hub with design shops and studios.',['Free to enter']],
+ [/Tai Kwun/i,'The former Central Police Station, Victoria Prison and Magistracy, the oldest parts dating to the 1860s. It opened in 2018 as a heritage and arts centre.',['Free to enter','Prison opens 11:00']],
+ [/Star Ferry/i,'A ferry service across Victoria Harbour since the late 1800s. The crossing is short, cheap and one of the best views for the money.',['About 10 min','Tap Octopus','Best at dusk or after dark']],
+ [/Peak Tram|Victoria Peak|Sky Terrace/i,'The Peak Tram opened in 1888 and is Hong Kong\'s oldest public transport. The Peak is a classic skyline lookout, and Lugard Road is a flat walking path around it.',['Peak Tram ticket, or a combo with Sky Terrace','Cooler and often foggy']],
+ [/Avenue of Stars|Symphony of Lights/i,'The waterfront promenade opened in 2004, modelled on the Hollywood Walk of Fame. The Symphony of Lights, a nightly light and sound show over the harbour, has run since 2004.',['The show runs at 20:00 and is free','Arrive 30 min early for the rail']],
+ [/Temple Street/i,'A night market around the Tin Hau Temple, with stalls selling clothes, souvenirs and street food and fortune tellers.',['Busiest after dark']],
+ [/Wong Tai Sin/i,'A temple to Wong Tai Sin, a Taoist deity famous for granting wishes and for fortune-telling sticks. The present site dates from 1973.',['Free to enter','Busy with worshippers']],
+ [/Chi Lin|Nan Lian/i,'Chi Lin Nunnery was founded in 1934 and rebuilt in the 1990s in Tang-dynasty style, using timber joints with no nails. The Nan Lian Garden opened in 2006.',['Free to enter']],
+ [/M\+/i,'Hong Kong\'s museum of visual culture, designed by Herzog & de Meuron and opened in 2021. Its tall facade is a screen for light shows.',['Timed entry for some exhibitions','Harbour views']],
+ [/Ocean Park/i,'Opened in 1977, one of Hong Kong\'s major theme parks, built on a hill overlooking the sea.',['Book online in advance','Public holiday crowds']],
+ [/Stanley/i,'A former fishing village on the south side of the island. Stanley Market is known for souvenirs, and the waterfront has cafés and a beach.',['Busiest at weekends']],
+ [/Ngong Ping|Tian Tan|Po Lin/i,'The Po Lin Monastery was founded in 1906. The Tian Tan Buddha, a bronze statue completed in 1993, is one of the biggest seated Buddhas in the world. The Ngong Ping 360 cable car opened in 2006.',['268 steps up to the Buddha','The cable car closes in strong winds']],
+ [/Tai O/i,'A fishing village on Lantau, known for its stilt houses built by the Tanka boat people. Dolphins are sometimes seen on the boat ride.',['Boat ride is paid to the boatman']],
+ [/Choi Hung/i,'A public housing estate completed in 1962, famous for its pastel-coloured blocks and rooftop basketball court.',['Best in the morning light']],
+ [/Jiufen/i,'A hillside town that boomed in the gold rush of the late 1800s and faded after the mines closed. It was revived by the film A City of Sadness in 1989.',['Crowded on weekends','Wet and steep in winter']]
+];
+const WIKI_KEY='trip-wiki-v1';
+function wikiCache(){try{return JSON.parse(localStorage.getItem(WIKI_KEY)||'{}')}catch(e){return {}}}
+async function wikiIntro(title){
+  const c=wikiCache();if(c[title])return c[title];
+  const u='https://en.wikipedia.org/w/api.php?action=query&prop=extracts%7Cinfo&inprop=url&exintro=1&explaintext=1&redirects=1&titles='+encodeURIComponent(title)+'&format=json&origin=*';
+  const j=await (await fetch(u)).json();
+  const pg=Object.values((j.query&&j.query.pages)||{})[0];
+  if(!pg||!pg.extract)throw new Error('none');
+  const r={title:pg.title,text:pg.extract.slice(0,1800),url:pg.fullurl};
+  c[title]=r;try{localStorage.setItem(WIKI_KEY,JSON.stringify(c))}catch(e){}
+  return r;
+}
+function placeInfoFor(it){const m=PLACE_INFO.find(p=>p[0].test(it.text));return m||null}
+function aboutNode(it,open){
+  const pi=placeInfoFor(it);if(!pi)return null;
+  const body=h('div',{style:'padding:6px 14px 12px;font-size:14px;line-height:1.5'});
+  body.append(h('p',{style:'margin:0 0 8px'},pi[1]));
+  if(pi[2]&&pi[2].length)body.append(h('ul',{style:'margin:0 0 8px;padding-left:18px'},pi[2].map(x=>h('li',null,x))));
+  const wiki=h('div',{style:'margin-top:4px'});
+  if(window.__PUBLIC__){
+    const btn=h('button',{class:'btn sm ghost',onclick:async()=>{
+      btn.disabled=true;btn.textContent='Loading...';
+      try{const r=await wikiIntro(aliasQuery(it.text)||stopName(it));wiki.replaceChildren(h('p',{class:'muted',style:'margin:6px 0 0'},'From Wikipedia: '+r.title),h('p',{style:'margin:4px 0 0;white-space:pre-line'},r.text),r.url?aLink(r.url,'Open on Wikipedia'):null)}
+      catch(e){btn.disabled=false;btn.textContent='Read the full history';toast('Could not load. Needs internet.')}
+    }},'Read the full history');
+    wiki.append(btn);
+  }
+  body.append(wiki);
+  return h('details',Object.assign({class:'g',style:'margin-top:6px'},open?{open:true}:{}),h('summary',null,'About this place'),body);
+}
+// "You are here": uses your position once, finds the nearest stop from today's plan within about 300 m.
+function hereCard(day){
+  if(!day||!NEAR.last)return null;
+  let best=null;
+  dayItems(day).forEach(it=>{const c=coordFor(it);if(!c||!placeInfoFor(it))return;const m=distM(NEAR.last,c);if(m<=300&&(!best||m<best.m))best={it,m}});
+  if(!best)return null;
+  const card=h('div',{class:'card'},h('div',{class:'row sp'},h('h3',null,'You are at '+stopName(best.it)),h('span',{class:'muted'},distTxt(best.m)+' away')));
+  const ab=aboutNode(best.it,true);if(ab)card.append(ab);
   return card;
 }
 
