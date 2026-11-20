@@ -330,13 +330,13 @@ D('2026-12-25',null,'Fri Dec 25','Taiwan','Beitou and Yangmingshan',[],'',null,
 D('2026-12-26',null,'Sat Dec 26','Macau','Taipei → Hong Kong → Macau',
  [],
  'Macau entry (official Macao government page): India is on the visa-free list, up to 30 days. Carry a passport valid at least 90 days beyond your stay, your onward or return ticket, and proof of at least MOP 5,000 for a stay of up to 7 days (cards, cash or a bank statement).',null,
- [['Before 11:00','Check out, head to Taoyuan Airport'],['Midday','Flight Taipei → Hong Kong'],['Afternoon','Immigration at HKG, then HZMB shuttle bus (combined checkpoint) to Macau'],['After 15:00','Check in at your Macau stay in Taipa'],['Evening','Casino Lisboa and Grand Lisboa, lit up after dark, then dinner in Taipa Village']]),
+ [['Before 11:00','Check out, head to Taoyuan Airport'],['Midday','Flight Taipei → Hong Kong'],['Afternoon','Airside transfer at HKG to Macau (SkyPier ferry or transfer coach), no Hong Kong immigration, then Macau immigration on arrival'],['After 15:00','Check in at your Macau stay in Taipa'],['Evening','Casino Lisboa and Grand Lisboa, lit up after dark, then dinner in Taipa Village']]),
 D('2026-12-27',null,'Sun Dec 27','Macau','Macau',[],'',
  'Taipa Grande at 19:00 is after sunset. Macau sunset is about 17:50 in late December, so go at about 17:15 to catch the light.',
  [['10:00','Ruins of St. Paul\'s'],['10:45','Monte Fort, short climb right behind St. Paul\'s'],['11:45','Senado Square and Macau General Post Office Building, exterior and photo stop only'],['12:15','Rua da Felicidade, "Street of Happiness", red-shuttered old buildings'],['12:45','St. Anthony\'s Church and Rua da Vitória, St. Lazarus Quarter'],['13:15','Lunch: Portuguese egg tarts, local Macanese food'],['14:30','Guia Fortress and Lighthouse (cable car up)'],['16:00','Lou Lim Ioc Garden, classical Chinese garden'],['16:30','The Venetian / The Parisian: canals, gondola rides, casino floor'],['19:00','Taipa Grande Viewing Platform for sunset'],['20:30','City of Dreams, dinner at Cotai Strip']]),
 D('2026-12-28',null,'Mon Dec 28','Hong Kong','Macau → Hong Kong (Wan Chai)',
  [],
- 'You enter Hong Kong a second time today. Check that your entry permission covers re-entry. Hopewell Centre lift trick: from the 3rd floor take the lift to the 17th floor, then the second lift up to the 56th floor, a glass-walled ride with a panoramic view.',null,
+ 'This is your one Hong Kong entry: your visit visa is single-journey, so you must not have cleared Hong Kong immigration on Dec 26. Keep the e-Visa on your phone and a printed copy. Hopewell Centre lift trick: from the 3rd floor take the lift to the 17th floor, then the second lift up to the 56th floor, a glass-walled ride with a panoramic view.',null,
  [['Morning','Last Macau shopping/sightseeing, check out of your Macau stay (before 11:00)'],['Midday','HZMB shuttle bus back to Hong Kong'],['Afternoon','Check in at your Wan Chai stay'],['15:30','Pak Tai Temple and Blue House Cluster, about 10 min walk from your stay'],['17:00','Hopewell Centre, Times Square, SOGO Causeway Bay (shopping)'],['20:00','Dinner in Wan Chai / Causeway Bay']]),
 D('2026-12-29',null,'Tue Dec 29','Hong Kong','Central and The Peak',[],
  'The Central–Mid-Levels escalator runs downhill only from 6:00 to 10:20, then uphill from 10:20 until midnight. Go after 10:20 or you will be riding the wrong way.',null,
@@ -365,6 +365,8 @@ const TODO=[
  ['Green Island ferry, Fugang Harbour → Green Island (pay on arrival). Check the weather the evening before.',0],
  ['Green Island transport: confirm the scooter licence rule, or choose an e-bike, taxi or island tour.',0],
  ['Confirm entry requirements for your passport: Taiwan and Hong Kong (twice, Dec 26 and Dec 28). Macau is done: India is visa-free for up to 30 days per the official Macao government page.',0],
+ ['Hong Kong visit visa is single-journey: use the airside transfer to Macau on Dec 26 and clear Hong Kong immigration only on Dec 28. Pay the e-Visa fee (HK$330) and save a copy on your phone and in print.',0],
+ ['Check the SkyPier or airport transfer coach timetable for Dec 26 and how to buy the ticket airside.',0],
  ['For Macau entry carry: passport valid at least 90 days beyond your stay, your return ticket, and proof of at least MOP 5,000 (cards, cash or a bank statement).',0],
  ['Book the Ngong Ping 360 Crystal Cabin for Jan 2.',0],
  ['Decide where you will watch New Year\'s Eve and how you will get back.',0],
@@ -443,8 +445,7 @@ const GO={
 '2026-12-26':{go:[
  ['Hostel → Taoyuan Airport','Taipei Main Station, then Airport MRT express to T1 or T2','About 40 min on the train','About NT$150–160. Leave the hostel before 11:00 for a midday flight, and be at the airport 2.5h before.',0],
  ['Taipei → Hong Kong flight','Airline','About 1h50m','Booked',0],
- ['HKG → HZMB Hong Kong Port','Airport bus or shuttle across to the HZMB port','About 15–25 min','About HK$ 20–40',1],
- ['HZMB Hong Kong Port → Macau','HZMB shuttle bus (Golden Bus), then clear Macau immigration','About 40–60 min plus queues, so plan 2h from landing','About HK$ 65. Pay cash in HKD or MOP, or use the operator\'s ticket machine.',1],
+ ['HKG → Macau, airside transfer','SkyPier ferry from the airport pier, or the airport transfer coach over the HZMB bridge. Stay airside and do not walk through arrivals.','About 1h–1h30 plus Macau immigration','Buy the ticket at the transfer counter. Check the schedule, the price and whether your bags are checked through.',1],
  ['Macau Port → hotel, Taipa','Taxi (about MOP 60–80) or a free casino shuttle if you are heading to a resort','About 15–25 min','Taxi has a base fare of about MOP 21',0]],
  near:['Taipa Village (Portuguese streets and egg-tart shops)','Taipa Houses Museum','The Venetian, The Parisian and City of Dreams on Cotai Strip','Cotai Water Jet and Taipa Ferry Terminal']},
 '2026-12-27':{go:[
@@ -613,20 +614,21 @@ const TRIP_START='2026-12-16', TRIP_END='2027-01-05';
 const fresh=()=>({days:DAYS,filter:'All',tab:'now',shop:[],addr:{},info:{},dl:{},talk:'mandarin',
   rates:{homeName:'INR',TWD:2.8,HKD:11.3,MOP:10.95},
   budget:{low:40000,high:60000},
-  expenses:[],todo:TODO,pack:PACK,bookingsDone:{},planV:4,addedV:1});
+  expenses:[],todo:TODO,pack:PACK,bookingsDone:{},planV:5,addedV:1});
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){S=null}
 if(!S||!S.days)S=fresh();
-if(S.planV!==4){
+if(S.planV!==5){
   // plan moved to the second itinerary: keep ticks and notes, reset the reordered and easy-day lists
   const oldDone={},oldNote={};
   (S.days||[]).forEach(d=>{(d.items||[]).forEach(i=>{if(i.done)oldDone[d.iso+'|'+i.text]=1});if(d.myNote)oldNote[d.iso]=d.myNote});
   S.days=DAYS;
   DAYS.forEach(d=>{d.items.forEach(i=>{if(oldDone[d.iso+'|'+i.text])i.done=true});if(oldNote[d.iso])d.myNote=oldNote[d.iso]});
-  S.pitems={};S.light={};S.addedV=1;S.planV=4;
+  S.pitems={};S.light={};S.addedV=1;S.planV=5;
   S.todo=(S.todo||[]).map(t=>/Dec 24 \(13:00\)/.test(t[0])?['Book the Taitung → Kaohsiung train and the Zuoying → Taipei high speed rail for Dec 24 (see Tickets). They are in your plan but not in your bookings.',t[1]]:t);
 }
 S.planMode='photo';
+if(!S.todo.some(t=>/single-journey/.test(t[0])))S.todo.splice(1,0,['Check the SkyPier or airport transfer coach timetable for Dec 26 and how to buy the ticket airside.',0],['Hong Kong visit visa is single-journey: use the airside transfer to Macau on Dec 26 and clear Hong Kong immigration only on Dec 28. Pay the e-Visa fee (HK$330) and save a copy on your phone and in print.',0]);
 if(!S.todo.some(t=>/MOP 5,000/.test(t[0])))S.todo.splice(1,0,['For Macau entry carry: passport valid at least 90 days beyond your stay, your return ticket, and proof of at least MOP 5,000 (cards, cash or a bank statement).',0]);
 if(!S.todo.some(t=>/Dec 24/.test(t[0])))S.todo.splice(1,0,['Book the Taitung → Kaohsiung train and the Zuoying → Taipei high speed rail for Dec 24 (see Tickets). They are in your plan but not in your bookings.',0]);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -791,7 +793,7 @@ function tripDays(){
 }
 const CASH_SHARE={'Taiwan':0.35,'Taitung':0.55,'Green Island':0.85,'Macau':0.2,'Hong Kong':0.15};
 const CASH_CUR={'Taiwan':'TWD','Taitung':'TWD','Green Island':'TWD','Macau':'MOP','Hong Kong':'HKD'};
-const CASH_FIXED=[['TWD',2550,'Green Island ferry both ways, two Taitung to Fugang taxis, scooter and hot spring'],['HKD',250,'Two HZMB shuttle bus rides and a port bus'],['MOP',300,'Macau taxis']];
+const CASH_FIXED=[['TWD',2550,'Green Island ferry both ways, two Taitung to Fugang taxis, scooter and hot spring'],['HKD',250,'SkyPier ferry on Dec 26, HZMB shuttle bus on Dec 28 and a port bus'],['MOP',300,'Macau taxis']];
 function cashCard(){
   const r=S.rates,{low,high}=S.budget,mid=(low+high)/2/19;
   const tot={TWD:0,HKD:0,MOP:0},why=[];let rainDays=0,known=0;
@@ -1011,7 +1013,7 @@ const TIPS=[
  ['Hong Kong','Good to know',['Tipping: 10% service is often added to restaurant bills.','New Year\'s Eve crowds around the harbour are huge. Check the official viewing plan and exit routes.','Emergency: 999.']],
  ['Macau','Getting around',['Free shuttle buses link most casino resorts to the ferry terminals and border gates.','Public buses use a flat fare and take exact change or a Macau Pass.','The old town (Senado Square, St. Paul\'s) is walkable. Taipa and Cotai are a short bus ride apart.']],
  ['Macau','Good to know',['Hong Kong dollars are accepted almost everywhere, but change comes back in MOP.','Casinos require you to be 21 to enter.','Emergency: 999.']],
- ['Hong Kong','Crossing by the HZMB bridge',['You pass Hong Kong immigration at the airport, then take the HZMB shuttle bus and clear Macau immigration at the other end.','On Dec 28 you do it in reverse. Keep your passport in hand and allow extra time.','Check your Hong Kong entry permission covers two entries.']],
+ ['Hong Kong','Crossing by the HZMB bridge',['On Dec 26 you transfer airside at the airport (SkyPier ferry or transfer coach) and clear only Macau immigration. Do not pass Hong Kong immigration.','On Dec 28 you take the HZMB shuttle bus back and clear Hong Kong immigration. That is your one entry on a single-journey visa.','Keep your passport and e-Visa handy and allow extra time.']],
  ['Taiwan','Entry check',['Entry rules depend on your passport. Check the official Taiwan, Hong Kong and Macau immigration sites before you fly.','Your Hanoi layover is airside only if you stay in transit. Check whether your ticket needs a transit visa.','Airlines often check passport validity at check-in.']]
 ];
 function renderTips(){
@@ -1038,7 +1040,7 @@ async function gz(data,mode){
 }
 async function exportPriv(){
   const dayBookings={};S.days.forEach(d=>{if(d.bookings&&d.bookings.length)dayBookings[d.iso]=d.bookings});
-  const json=JSON.stringify({v:2,bookings:BOOKINGS,lodging:LODGING,dayBookings,planV:4,days:S.days,budget:S.budget,notes:S.notes||'',todo:S.todo,addr:S.addr||{},info:S.info||{},tix:S.tix||{}});
+  const json=JSON.stringify({v:2,bookings:BOOKINGS,lodging:LODGING,dayBookings,planV:5,days:S.days,budget:S.budget,notes:S.notes||'',todo:S.todo,addr:S.addr||{},info:S.info||{},tix:S.tix||{}});
   try{if(window.CompressionStream)return 'TK1:'+b64(await gz(json,'c'))}catch(e){}
   return json;
 }
@@ -1048,7 +1050,7 @@ async function importPriv(text){
   const p=JSON.parse(json);
   if(!p||(p.v!==1&&p.v!==2)||!Array.isArray(p.bookings)||!Array.isArray(p.lodging))throw new Error('bad');
   S.priv={bookings:p.bookings,lodging:p.lodging,dayBookings:p.dayBookings||{}};
-  if(p.planV===4&&Array.isArray(p.days)&&p.days.length){
+  if(p.planV===5&&Array.isArray(p.days)&&p.days.length){
     const done={};S.days.forEach(d=>d.items.forEach(i=>{if(i.done)done[d.iso+i.text]=1}));
     p.days.forEach(d=>d.items.forEach(i=>{if(done[d.iso+i.text])i.done=true}));
     S.days=p.days;
@@ -1676,7 +1678,8 @@ const TICKETS=[
  ['ferryback','Green Island ferry, back','2026-12-24',null,'Book when you arrive on the island.','About NT$500–550','Green Island ferry Taitung Fugang','https://www.taiwanrail.cc/','Same as the outbound ferry: pay locally unless an online price is clearly lower.',0],
  ['trainback','Train, Taitung to Kaohsiung (TRA)','2026-12-24','2026-11-26','Reserved seat on the south line. Book on the TRA site or app or at a 7-Eleven kiosk. Pick a train that leaves well after the ferry lands, in case of sea delays.','About NT$400–500 (check)','Taiwan Railway Taitung Kaohsiung','https://www.railway.gov.tw/tra-tip-web/tip','Official TRA price is the lowest. Skip resellers for TRA tickets.',0],
  ['khback','High speed rail, Zuoying (Kaohsiung) to Taipei','2026-12-24','2026-11-26','Book on the T-EX app or at a counter. Pick a train after about 20:30 and check the last train of the night. EasyCard is not accepted.','About NT$1,500–1,700 (check)','Taiwan High Speed Rail Zuoying Taipei','https://www.thsrc.com.tw/en','Compare the T-EX early-bird price with Klook or KKday. Book a flexible ticket in case the ferry runs late.',1],
- ['hzmb','HZMB shuttle bus, Hong Kong to Macau and back','2026-12-26',null,'Pay on the day at the bus counter, on Dec 26 and again on Dec 28.','About HK$ 65 each way','HZMB bus Hong Kong Macau','https://www.hzmbus.com/','Klook and KKday sometimes sell HZMB bus tickets cheaper than the counter, often with an e-ticket you scan. Check the exact route (HKG Airport vs. Hong Kong Port).',1],
+ ['skypier','Airside transfer, Hong Kong airport to Macau (SkyPier ferry or transfer coach)','2026-12-26',null,'Transit passengers only: stay airside, do not clear Hong Kong immigration. Buy at the transfer counter. Ask whether your bags are checked through and check the Macau sailing times, which have been reduced.','Price varies, check','Hong Kong airport SkyPier ferry Macau','https://www.hongkongairport.com/en/transport/mainland-connection/ferry-transfer.page','Buy at the airport. Check the schedule on the airport site first, because there are fewer Macau sailings than before.',0],
+ ['hzmb','HZMB shuttle bus, Macau to Hong Kong','2026-12-28',null,'Pay on the day at the bus counter. This is your one Hong Kong entry, so have your e-Visa ready.','About HK$ 65','HZMB bus Hong Kong Macau','https://www.hzmbus.com/','Klook and KKday sometimes sell HZMB bus tickets cheaper than the counter, often with an e-ticket you scan. Check the exact route (HKG Airport vs. Hong Kong Port).',1],
  ['octopus','Octopus card, Hong Kong','2026-12-26',null,'Buy at an MTR customer service centre, or a convenience store. It also works for many Macau shops and for Taiwan\'s Taipei Metro only in limited cases. Mostly for Hong Kong.','About HK$ 150 including HK$ 50 deposit and HK$ 100 value','Octopus card Hong Kong','https://www.octopus.com.hk/','Klook and KKday sell Octopus cards for pickup or delivery, usually with a small markup. Buying at the MTR is normally the cheapest. Refund the unused balance and deposit before you fly.',0],
  ['harbourcruise','Victoria Harbour night cruise (optional)','2026-12-30',null,'Pick a departure around 19:30 to 20:15 so you see the skyline lights. Check the length and whether a drink is included.','Price varies by cruise, so check','Victoria Harbour night cruise Hong Kong','https://www.google.com/search?q=Victoria+Harbour+night+cruise+Hong+Kong','Cruises are often cheaper on Klook or KKday than at the pier, and they sell out on busy nights. Compare the final price and the departure time. Dec 31 cruises may not be available at all: use the free waterfront viewing spots instead.',1],
  ['peak','Peak Tram and Sky Terrace combo','2026-12-29',null,'Book online to skip the queue.','About HK$ 120+','Peak Tram Sky Terrace 428 ticket','https://www.thepeak.com.hk/','Combos on Klook and KKday are often cheaper than buying the tram and Sky Terrace separately at the counter. Compare the same-day price and check the exchange rules.',1],
@@ -1904,7 +1907,7 @@ const HOW={
  '2026-12-26':[
   [/Check out|Taoyuan Airport/i,'Taoyuan Airport MRT (Express or Commuter) from Taipei Main Station, about 35–50 min.','Tap EasyCard or buy a single ticket at the machine.'],
   [/Flight Taipei/i,'Check in at the airline counter, at least 2 hours before.','-'],
-  [/Immigration at HKG|HZMB/i,'After immigration at HKG, follow signs to the Hong Kong–Zhuhai–Macau Bridge (HZMB) shuttle buses to Macau.','Buy the HZMB ticket at the counter in the airport or at the HZMB port. About HK$65 each way; bring your passport.'],
+  [/Airside transfer/i,'Stay airside at the airport. Follow the signs for transfer to Macau: the SkyPier ferry, or the transfer coach over the HZMB bridge. Do not go through Hong Kong arrivals.','Buy at the transfer counter. Ask about the price, the next sailing and whether your bags are checked through.'],
   [/Check in at Treasure|After 15:00/i,'Taxi or bus from the Macau HZMB port to Taipa.','Bus fares are MOP 6 in exact change (no change given), or a Macau Pass. Taxi by meter.'],
   [/Casino Lisboa/i,'Taxi from Taipa, or a casino free shuttle bus toward the old town.','Free shuttles need no ticket. Taxi by meter.']],
  '2026-12-27':[
@@ -1987,7 +1990,7 @@ const CHEAP=[
  [/Peak Tram/i,'Buy the Peak Tram and Sky Terrace combo online instead of at the counter.','Peak Tram Sky Terrace 428 ticket'],
  [/M\+/i,'Book on the official site. Resellers rarely save money.',null],
  [/National Palace Museum/i,'Buy at the museum or on the official site. It is already cheap.',null],
- [/Immigration at HKG|HZMB shuttle bus back/i,'Check Klook or KKday for a discounted HZMB e-ticket before buying at the counter.','HZMB bus Hong Kong Macau'],
+ [/HZMB shuttle bus back/i,'Check Klook or KKday for a discounted HZMB e-ticket before buying at the counter.','HZMB bus Macau Hong Kong'],
  [/MTR to Hong Kong Station|Airport Express/i,'Tap Octopus. Compare with a Klook Airport Express ticket and the A21 bus if you are not rushed.','Airport Express Hong Kong ticket']
 ];
 function cheapFor(it){const m=CHEAP.find(x=>x[0].test(it.text));return m||null}
@@ -2129,7 +2132,7 @@ const TILES=[
 // ---------- pins on the day map (hosted app) ----------
 // Coordinates are approximate, typed from general knowledge. A pin can be a few hundred metres off, so use the Map button on a stop for the exact spot.
 const COORD=[
- [/Airport MRT|bus to Taipei Main|Taoyuan/i,25.0797,121.2342],[/Check in at/i,25.0527,121.5175],[/Wenchang/i,25.0545,121.5135],[/Dadaocheng/i,25.0555,121.5105],[/Ningxia/i,25.0563,121.5155],[/Ximending/i,25.0421,121.5081],
+ [/Airport MRT|bus to Taipei Main|Taoyuan/i,25.0797,121.2342],[/Airside transfer/i,22.3080,113.9185],[/Check in at/i,25.0527,121.5175],[/Wenchang/i,25.0545,121.5135],[/Dadaocheng/i,25.0555,121.5105],[/Ningxia/i,25.0563,121.5155],[/Ximending/i,25.0421,121.5081],
  [/Taipei 101 observ/i,25.0340,121.5645],[/Lunch in Xinyi/i,25.0365,121.5690],[/Xiangshan|Elephant Mountain|summit/i,25.0273,121.5740],
  [/THSR\/TRA/i,25.0478,121.5170],[/Rainbow Village/i,24.1347,120.5955],[/Miyahara/i,24.1380,120.6840],[/Taichung Park|Calligraphy/i,24.1445,120.6835],[/Taichung Theater/i,24.1627,120.6402],[/Nantian/i,24.1596,120.6209],[/Fengjia/i,24.1789,120.6460],
  [/National Palace Museum/i,25.1024,121.5485],[/Yingge Historic|Ceramics/i,24.9541,121.3543],[/Art Museum/i,24.9530,121.3560],[/Longshan/i,25.0372,121.4999],[/Bopiliao/i,25.0357,121.5012],[/Performing Arts/i,25.0850,121.5253],[/Shilin Night/i,25.0879,121.5243],[/TRA to Yingge/i,24.9578,121.3417],
