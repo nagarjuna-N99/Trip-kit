@@ -329,7 +329,7 @@ D('2026-12-25',null,'Fri Dec 25','Taiwan','Beitou and Yangmingshan',[],'',null,
  [['10:00','Beitou Hot Springs and Thermal Valley'],['13:00','Lunch in Beitou'],['15:00','Yangmingshan National Park, short hike'],['19:00','Final Taipei dinner, pack for Hong Kong / Macau leg']]),
 D('2026-12-26',null,'Sat Dec 26','Macau','Taipei → Hong Kong → Macau',
  [],
- '',null,
+ 'Macau entry (official Macao government page): India is on the visa-free list, up to 30 days. Carry a passport valid at least 90 days beyond your stay, your onward or return ticket, and proof of at least MOP 5,000 for a stay of up to 7 days (cards, cash or a bank statement).',null,
  [['Before 11:00','Check out, head to Taoyuan Airport'],['Midday','Flight Taipei → Hong Kong'],['Afternoon','Immigration at HKG, then HZMB shuttle bus (combined checkpoint) to Macau'],['After 15:00','Check in at your Macau stay in Taipa'],['Evening','Casino Lisboa and Grand Lisboa, lit up after dark, then dinner in Taipa Village']]),
 D('2026-12-27',null,'Sun Dec 27','Macau','Macau',[],'',
  'Taipa Grande at 19:00 is after sunset. Macau sunset is about 17:50 in late December, so go at about 17:15 to catch the light.',
@@ -364,7 +364,8 @@ const TODO=[
  ['Book the Puyuma Express Taipei → Taitung for Dec 22. Your plan says the window opens about Nov 26; 28 days before Dec 22 is Nov 24, so check from Nov 24.',0],
  ['Green Island ferry, Fugang Harbour → Green Island (pay on arrival). Check the weather the evening before.',0],
  ['Green Island transport: confirm the scooter licence rule, or choose an e-bike, taxi or island tour.',0],
- ['Confirm entry requirements for your passport: Taiwan, Hong Kong (twice, Dec 26 and Dec 28) and Macau.',0],
+ ['Confirm entry requirements for your passport: Taiwan and Hong Kong (twice, Dec 26 and Dec 28). Macau is done: India is visa-free for up to 30 days per the official Macao government page.',0],
+ ['For Macau entry carry: passport valid at least 90 days beyond your stay, your return ticket, and proof of at least MOP 5,000 (cards, cash or a bank statement).',0],
  ['Book the Ngong Ping 360 Crystal Cabin for Jan 2.',0],
  ['Decide where you will watch New Year\'s Eve and how you will get back.',0],
  ['Chase any pending hostel refund.',0],
@@ -626,6 +627,7 @@ if(S.planV!==4){
   S.todo=(S.todo||[]).map(t=>/Dec 24 \(13:00\)/.test(t[0])?['Book the Taitung → Kaohsiung train and the Zuoying → Taipei high speed rail for Dec 24 (see Tickets). They are in your plan but not in your bookings.',t[1]]:t);
 }
 S.planMode='photo';
+if(!S.todo.some(t=>/MOP 5,000/.test(t[0])))S.todo.splice(1,0,['For Macau entry carry: passport valid at least 90 days beyond your stay, your return ticket, and proof of at least MOP 5,000 (cards, cash or a bank statement).',0]);
 if(!S.todo.some(t=>/Dec 24/.test(t[0])))S.todo.splice(1,0,['Book the Taitung → Kaohsiung train and the Zuoying → Taipei high speed rail for Dec 24 (see Tickets). They are in your plan but not in your bookings.',0]);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
