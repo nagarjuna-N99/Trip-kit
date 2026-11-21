@@ -1126,7 +1126,7 @@ function stopRow(day,it){
   const ab=aboutNode(it,false);
   return h('div',{class:'st'+(it.done?' done':''),style:'flex-wrap:wrap'},
     h('button',{class:'ck'+(it.done?' on':''),'aria-pressed':it.done?'true':'false','aria-label':(it.done?'Undo ':'Done: ')+it.text,onclick:()=>toggleItem(it)},it.done?icon('check',16):null),
-    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),' ',zhBtn(it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),cheapFor(it)?cheapNode(it):howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it),ab?h('div',{style:'flex:0 0 100%'},ab):null);
+    h('div',{class:'stb'},it.time?h('div',{class:'stt'},it.time,slotFor(day,it)?h('span',{style:'font-weight:500;color:var(--muted)'},' · '+slotTxt(slotFor(day,it))+' slot'):null):null,h('div',null,it.text,' ',aLink(mapUrl(it.text.split(/[,:(]/)[0],day.city),'Map'),' ',walkLink(it.text.split(/[,:(]/)[0],day.city),' ',transitLink(day,it),' ',zhBtn(it),howFor(day,it)?h('div',{style:'font-size:13px;margin-top:3px'},h('b',null,'Shortest route: '),howFor(day,it),cheapFor(it)?cheapNode(it):howPay(day,it)?h('div',{class:'muted',style:'margin-top:2px'},h('b',null,'Ticket or pass: '),howPay(day,it)):null):null,legFor(day,it)&&!(howFor(day,it)&&/^Not a walk/.test(legFor(day,it)))?h('div',{class:'muted',style:'font-size:13px;margin-top:2px'},legFor(day,it)):null)),thumbFor(day,it),ab?h('div',{style:'flex:0 0 100%'},ab):null);
 }
 function wxBlock(day){
   const a=wxAdvice(wxIso(day),day.city);
@@ -2409,6 +2409,14 @@ function remTick(){
 // ---------- running late, and the Dec 24 ferry planner ----------
 const pm=t=>{const x=/^(\d{1,2}):(\d{2})$/.exec(String(t||'').trim());return x?+x[1]*60+ +x[2]:null};
 const fm=m=>{m=Math.max(0,Math.round(m));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+// Time slot for a stop: from its start to the next timed stop. It includes getting to the next place.
+function slotFor(d,it){
+  const its=visibleItems(d),i=its.indexOf(it);if(i<0)return null;
+  const a=pm(it.time);if(a===null)return null;
+  for(let k=i+1;k<its.length;k++){const b=pm(its[k].time);if(b!==null){const m=b-a;return m>0&&m<=480?m:null}}
+  return null;
+}
+const slotTxt=m=>m<60?m+' min':Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):'');
 function shiftTimes(d,mins){
   S.late=S.late||{};const st=S.late[d.id]=S.late[d.id]||{orig:{},shift:0};
   const n=new Date(),nm=n.getHours()*60+n.getMinutes(),isToday=d.iso===today();
